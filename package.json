@@ -1,0 +1,39 @@
+{
+  "name": "zepr.ts",
+  "version": "0.0.1",
+  "description": "A simple HTML5 rendering engine",
+  "main": "dist/index",
+  "typings": "dist/index",
+  "scripts": {
+    "prepublishOnly": "npm run compile",
+    "compile": "npm run clean && tsc -p .",
+    "watch": "tsc -w -p .",
+    "clean": "rm -rf dist"
+  },
+  "bugs": {
+    "url": "https://github.com/zepr/zepr.ts/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zepr/zepr.ts.git"
+  },
+  "keywords": [
+    "canvas",
+    "html5",
+    "engine"
+  ],
+  "author": "Glenn Sanson <glenn.sanson@gmail.com> (https://zepr.fr)",
+  "contributors": [
+    "Thomas Picard <thomas.picard666@gmail.com> (https://darkham.fr)"
+  ],
+  "license": "LGPL-3.0-or-later",
+  "devDependencies": {
+    "@types/node": "^8.0.0",
+    "typescript": "^2.8.3"
+  },
+  "files": [
+    "dist/index.js",
+    "dist/index.d.ts",
+    "dist/lib"
+  ]
+}
