@@ -32,6 +32,9 @@ export class Engine {
 
     /** Object cache */
     private cache: Map<string, any>;
+    /** Screen cache */
+    private screenCache: Map<string, GameScreen>;
+
 
     /** Current screen */
     private screen: GameScreen;
@@ -65,6 +68,12 @@ export class Engine {
     /** Current touch zoom state */
     private touchZoomState: State;
 
+    /** Minimum zoom value */
+    private minZoom: number;
+    /** Maximum zoom value */
+    private maxZoom: number;
+
+
     /** Main loop timer id */
     private timer: number;
 
@@ -92,7 +101,9 @@ export class Engine {
         this.offCanvas.height = height;
         this.offCtx = this.offCanvas.getContext('2d');
 
+        // Caches
         this.cache = new Map<string, any>();
+        this.screenCache = new Map<string, GameScreen>();
 
         // Manage resize
         window.addEventListener<'resize'>('resize', this.resize);
@@ -233,10 +244,23 @@ export class Engine {
 
 
     /**
+     * Caches a new screen
+     */
+    public addScreen = (name: string, newScreen: GameScreen): Engine => {
+        this.screenCache.set(name, newScreen);
+        return this;
+    }
+
+
+    /**
      * Changes displayed screen
      */
-    public start = (newScreen: GameScreen): void => {
-        this.nextScreen = newScreen;
+    public start = (newScreen: string | GameScreen): void => {
+        if (typeof newScreen === 'string') {
+            this.nextScreen = this.screenCache.get(newScreen);
+        } else {
+            this.nextScreen = newScreen;
+        }
     }
 
     /**
@@ -280,6 +304,9 @@ export class Engine {
             }
             this.touchZoomState.current = this.touchZoomState.next;
         }
+
+        if (this.zoomState.next < this.minZoom) { this.zoomState.next = this.minZoom };
+        if (this.zoomState.next > this.maxZoom) { this.zoomState.next = this.maxZoom };
 
         if (this.zoomEnabled && this.zoomState.current != this.zoomState.next) {
             if (uncasted.onZoom !== undefined) {
@@ -337,7 +364,11 @@ export class Engine {
         this.mouseMoveEnabled = false; // TODO : Voir effet de bord si desactivation en cours de cycle
     }
 
-    public enableZoomControl = (): void => {
+    public enableZoomControl = (minZoom: number = 0.1, maxZoom: number = 10): void => {
+
+        this.minZoom = minZoom;
+        this.maxZoom = maxZoom;
+
         if (!this.zoomEnabled) {
             this.touchZoomState.next = this.touchZoomState.current;
             this.zoomState.next = this.zoomState.current;

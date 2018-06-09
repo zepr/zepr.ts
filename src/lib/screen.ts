@@ -3,7 +3,6 @@ import { Point, Vector } from './geometry';
 import { Sprite } from './sprite';
 
 export interface GameScreen {
-    getName(): string;
     init(engine: Engine): void;
     run(engine: Engine): void;
 }

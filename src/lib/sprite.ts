@@ -8,7 +8,7 @@ export abstract class Sprite {
 
     protected rect: Rectangle;
 
-    public constructor(protected name: string, position: Rectangle | Point, protected index: number = 1) {
+    public constructor(position: Rectangle | Point, protected index: number = 1) {
         if (position instanceof Rectangle) {
             this.rect = <Rectangle>position;
         } else { // Point
@@ -22,10 +22,6 @@ export abstract class Sprite {
 
     public moveTo = (newX: number, newY: number): void => {
         this.rect.moveTo(newX, newY);
-    }
-
-    public getName = (): string => {
-        return this.name;
     }
 
     public getX = (): number => {
@@ -66,9 +62,9 @@ export class ImageSprite extends Sprite {
 
     public constructor(
         image: HTMLImageElement | HTMLCanvasElement,
-        name: string, position: Point | Rectangle, index: number = 1) {
+        position: Point | Rectangle, index: number = 1) {
 
-        super(name, position, index);
+        super(position, index);
         this.setImage(image);
     }
 
@@ -114,7 +110,7 @@ export class TiledSprite extends ImageSprite {
         protected directions: Array<Direction>,
         name: string, position: Rectangle, index: number = 1) {
         
-        super(image, name, position);
+        super(image, position);
         this.currentDirection = directions[this.indexDirection];
     }
 
