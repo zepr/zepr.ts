@@ -456,7 +456,8 @@ export class Engine {
 
         let position: Point = this.getEventPosition(event);
 
-        if (this.zoomEnabled && event instanceof TouchEvent && event.touches.length > 1) {
+        if (this.zoomEnabled && window.ontouchstart 
+            && event instanceof TouchEvent && event.touches.length > 1) {
             this.touchZoomState.current = new Vector(
                 event.touches.item(0).pageX - event.touches.item(1).pageX,
                 event.touches.item(0).pageY - event.touches.item(1).pageY
