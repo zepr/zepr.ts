@@ -1,6 +1,6 @@
 {
   "name": "zepr.ts",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A simple HTML5 rendering engine",
   "main": "dist/index",
   "typings": "dist/index",
@@ -29,6 +29,7 @@
   "license": "LGPL-3.0-or-later",
   "devDependencies": {
     "@types/node": "^8.0.0",
+    "typedoc": "^0.11.1",
     "typescript": "^2.8.3"
   },
   "files": [

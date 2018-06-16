@@ -1,17 +1,34 @@
+/**
+ * Defines the engine used to render scenes (aka [[GameScreen]]s).
+ * A project that use the zepr.ts framework must define exactly one instance of [[Engine]]
+ */
+
+/**
+ * 
+ */
+
 import { Point, Vector, Rectangle } from './geometry'
 import { GameScreen, ClickListener, ZoomListener, DragListener } from './screen';
 import { Sprite } from './sprite';
 
-
+/**
+ * A simple state transition class
+ */
 class State {
-    current: number;
-    next: number;
+    /** Current state */
+    public current: number;
+    /** Next state */
+    public next: number;
 }
 
+/**
+ * Defines the engine used to render scenes (aka Screens).
+ */
 export class Engine {
 
+    /** Default background color used when nothing is specified for a Screen */
     public static readonly DEFAULT_BACKGROUND_COLOR = '#000000';
-
+    /** Zoom ratio used for mouse scroll wheel */
     public static readonly ZOOM_RATIO: number = 1.1;
 
     /** Main canvas */
@@ -27,14 +44,13 @@ export class Engine {
 
     /** Current background */
     private background: HTMLImageElement | HTMLCanvasElement;
-    /** Alternative background color */
+    /** Alternative background color if no image background is set */
     private backgroundColor: string;
 
     /** Object cache */
     private cache: Map<string, any>;
     /** Screen cache */
     private screenCache: Map<string, GameScreen>;
-
 
     /** Current screen */
     private screen: GameScreen;
@@ -73,16 +89,12 @@ export class Engine {
     /** Maximum zoom value */
     private maxZoom: number;
 
-
-    /** Main loop timer id */
-    private timer: number;
-
     /**
-     *
+     * Defines an Engine. The scene is always maximized and centered on screen with preservation of its aspect ratio (Adds borders when needed)
      * @param width Scene width
      * @param height Scene height
      */
-    public constructor(private width: number = -1, private height: number = -1) {
+    public constructor(private width: number, private height: number) {
 
         // Always create a new canvas
         this.canvas = document.createElement<'canvas'>('canvas');
@@ -117,8 +129,9 @@ export class Engine {
 
     /**
      * Adapts view to a new screen size
+     * @param event Resize event
      */
-    protected resize = (event: UIEvent = null): void => {
+    protected resize = (event?: UIEvent): void => {
         const ratio: number = this.width / this.height;
         
 		this.canvas.width = window.innerWidth;
@@ -140,6 +153,9 @@ export class Engine {
         this.coords.resize(this.width * scale, this.height * scale);
     }
 
+    /**
+     * Refreshes scene. Renders background and sprites on offest canvas
+     */
     protected repaint = (): void => {
         if (this.background) {
             this.offCtx.drawImage(this.background, 0, 0);
@@ -157,7 +173,13 @@ export class Engine {
         this.ctx.drawImage(this.offCanvas, this.coords.x, this.coords.y, this.coords.width, this.coords.height);
     }
 
-
+    /**
+     * Main loop
+     * - Redraws main frame
+     * - Evaluates captured events 
+     * - Executes current [[GameScreen]] run method
+     * - Renders sprites for next frame
+     */
     protected run = (): void => {
         this.repaint();
 
@@ -192,7 +214,7 @@ export class Engine {
 
 
     /** 
-     * Resets screen settings
+     * Resets screen settings. Internally used for screen switch
      */
     protected reset = (): void => {
 
@@ -222,29 +244,39 @@ export class Engine {
 
     /**
      * Loads an image, adds it to the cache (If not already done)
+     * @param url Absolute or relative path to the image
+     * 
+     * @returns An image or null if not found
      */
-    protected addImage = (name: string): HTMLImageElement => {
-		let img: HTMLImageElement = <HTMLImageElement>this.cache.get(name);
+    protected addImage = (url: string): HTMLImageElement => {
+		let img: HTMLImageElement = <HTMLImageElement>this.cache.get(url);
 		if (!img) {
             img = document.createElement<'img'>('img');
-			img.src = name;
+			img.src = url;
 			
-			this.cache.set(name, img);
+			this.cache.set(url, img);
 		}
         
         return img;
     }
 
     /**
-     * Loads an image
+     * Loads an image. Equivalent to [[addImage]]
+     * @param url Absolute or relative path to the image
+     * 
+     * @returns An image or null if not found
      */
-    public getImage = (name: string): HTMLImageElement => {
-        return this.addImage(name);
+    public getImage = (url: string): HTMLImageElement => {
+        return this.addImage(url);
     }
 
 
     /**
-     * Caches a new screen
+     * Caches a new [[GameScreen]] instance
+     * @param name Key associated to the screen
+     * @param newScreen New screen to reference
+     * 
+     * @returns current engine (to chain screen definitions)
      */
     public addScreen = (name: string, newScreen: GameScreen): Engine => {
         this.screenCache.set(name, newScreen);
@@ -253,7 +285,8 @@ export class Engine {
 
 
     /**
-     * Changes displayed screen
+     * Changes displayed [[GameScreen]]. Use key when possible. See also [[addScreen]].
+     * @param newScreen Key of referenced screen or new instance of screen
      */
     public start = (newScreen: string | GameScreen): void => {
         if (typeof newScreen === 'string') {
@@ -264,7 +297,7 @@ export class Engine {
     }
 
     /**
-     * Forces update of sprites hierarchy (in case of index update)
+     * Forces update of sprites hierarchy. Should be used when index of sprites is updated.
      */
     public forceHierarchyUpdate = (): void => {
         this.modifiedSpriteList = true;
@@ -274,6 +307,9 @@ export class Engine {
     /* MOUSE CONTROL */
     /* START */
 
+    /**
+     * Manages everything related to mouse and touch events
+     */
     private manageMouseEvents = (): void => {
         let uncasted = <any>this.screen;
 
@@ -334,7 +370,10 @@ export class Engine {
         }    
     }
 
-
+    /**
+     * Enables mouse and touch click events. Current Screen must implement ClickListener interface
+     * @param withSprites If the event should return clicked sprites
+     */
     public enableMouseControl = (withSprites: boolean = false): void => {
         if (!this.mouseEnabled) {
             window.addEventListener<'mousedown'>('mousedown', this.onDown);
@@ -346,6 +385,9 @@ export class Engine {
         this.clickedSpritesEnabled = withSprites;
     }
 
+    /**
+     * Disables mouse and touch click events. 
+     */
     public disableMouseControl = (): void => {
         if (this.mouseEnabled) {
             window.removeEventListener<'mousedown'>('mousedown', this.onDown);
@@ -355,15 +397,24 @@ export class Engine {
         }
     }
 
+    /**
+     * Enables mouse and touch drag events. Current Screen must implement DragListener interface.
+     */
     public enableMouseDrag = (): void => {
         this.enableMouseControl(this.clickedSpritesEnabled); // Mandatory
         this.mouseMoveEnabled = true;
     }
 
+    /**
+     * Disables mouse and touch drag events.
+     */
     public disableMouseDrag = (): void => {
         this.mouseMoveEnabled = false; // TODO : Voir effet de bord si desactivation en cours de cycle
     }
 
+    /**
+     * Enables mouse wheel and touch pinch events. Current Screen must implement ZoomListener interface.
+     */
     public enableZoomControl = (minZoom: number = 0.1, maxZoom: number = 10): void => {
 
         this.minZoom = minZoom;
@@ -385,6 +436,9 @@ export class Engine {
         }
     }
 
+    /**
+     * Disables mouse wheel and touch pinch events.
+     */
     public disableZoomControl = (): void => {
         if (this.zoomEnabled) {
             if (!this.mouseEnabled) {
@@ -398,7 +452,10 @@ export class Engine {
         }
     }
 
-
+    /**
+     * Listens zoom events
+     * @param event Source event
+     */
     protected onZoom = (event: WheelEvent | TouchEvent): void => {
 
         event.preventDefault();
@@ -420,7 +477,12 @@ export class Engine {
         }
     }
 
-
+    /**
+     * Converts screen coords of event to Screen coords
+     * @param event Source event
+     * 
+     * @returns The screen coordinates of the event
+     */
     private getEventPosition = (event: MouseEvent | TouchEvent): Point => {
         let x: number = -1, y: number = -1;
 
@@ -449,7 +511,10 @@ export class Engine {
         return position;
     }
 
-
+    /**
+     * Listens mouse down events to manage both click and drag events
+     * @param event Source event
+     */
     protected onDown = (event: MouseEvent | TouchEvent): void => {
     
         event.preventDefault();
@@ -482,8 +547,11 @@ export class Engine {
         }
     }
 
-
-    protected onMove = (event: MouseEvent | TouchEvent): boolean => {
+    /**
+     * Listens move events to manage drag events
+     * @param event Source event
+     */
+    protected onMove = (event: MouseEvent | TouchEvent): void => {
         event.preventDefault();
 
         if (this.mouseMoveEnabled) {
@@ -493,10 +561,12 @@ export class Engine {
                 this.mousePrevious = newPosition;
             }
         }
-
-        return false;
     }
 
+    /**
+     * Listens mouse up events to manage both click and drag events
+     * @param event Source event
+     */
     protected onUp = (event: MouseEvent | TouchEvent): boolean => {
         event.preventDefault();
 
@@ -527,25 +597,47 @@ export class Engine {
     /* START */
 
     /**
-     * Adds sprite to screen (Even if it already exists)
+     * Adds sprite to screen. A sprite is inserted only once in a Screen
+     * @param sprite Sprite to add
+     * 
+     * @returns true if the Sprite is added (false if already present)
      */
-    public addSprite = (sprite: Sprite): void => {
-        this.spriteList.push(sprite);
-        this.modifiedSpriteList = true;
+    public addSprite = (sprite: Sprite): boolean => {
+        let index: number = this.spriteList.indexOf(sprite);
+
+        if (index == -1) {
+            this.spriteList.push(sprite);
+            this.modifiedSpriteList = true;
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
-     * Removes first instance of sprite
+     * Removes instance of sprite
+     * @param sprite Sprite to remove
+     * 
+     * @returns true if the sprite is really removed (false if not present)
      */
-    public removeSprite = (sprite: Sprite): void => {
+    public removeSprite = (sprite: Sprite): boolean => {
         let index: number = this.spriteList.indexOf(sprite);
 
         if (index >= 0) {
             this.spriteList.splice(index, 1);
             this.modifiedSpriteList = true;
+
+            return true;
         }
+
+        return false;
     }
     
+    /**
+     * Defines current background image. The image is not distorted to fit the screen. 
+     * @param bgImage The new background image. May be either an image, its relative or absolute url or a canvas
+     */
     public setBackground = (bgImage: HTMLImageElement | HTMLCanvasElement | string): void => {
         if (bgImage instanceof HTMLImageElement) {
             this.background = <HTMLImageElement>bgImage;
@@ -556,6 +648,10 @@ export class Engine {
         }
     }
 
+    /**
+     * Defines current background color. Has no effect if a background image is already defined for the current screen. See also [[setBackground]].
+     * @param color The new background color
+     */
     public setBackgroundColor = (color: string): void => {
         this.backgroundColor = color;
     }

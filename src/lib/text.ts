@@ -1,6 +1,13 @@
+/**
+ * Exposes text-related classes
+ */
+
+/**
+ * 
+ */
 import { Point } from "./geometry";
 
-
+/** Defines possible text alignments */
 export enum TextAlign {
     LEFT,
     RIGHT,
@@ -8,40 +15,65 @@ export enum TextAlign {
     JUSTIFY        
 };    
 
-
+/** A simple font definition */
 export class Font {
 
+    /**
+     * @param _face Font face
+     * @param _size Font size
+     * @param _color Font color
+     */
     public constructor(protected _face: string = 'arial',
         protected _size: number = 12,
         protected _color: string = 'black') {
     }
 
+    /** Font face */
     get face(): string {
         return this._face;
     }
 
+    /** Font size */
     get size(): number {
         return this._size;
     }
 
+    /** Font color */
     get color(): string {
         return this._color;
     }
 }
 
 
+/**
+ * Represents a managed paragraph of text. This class is not a Sprite but is easily integrable to one.
+ */
 export class Text {
 
-    protected height: number = 0;
+    /** Height of the text */
+    protected height: number;
+    /** Defined space size except for justified text */
     protected space: number;
+    /** Defined space size for justified text */
     protected justifySpace: Array<number>;
 
+    /** Text cut in lines of words */
     protected lines: Array<Array<string>>;
+    /** Space before first word in line */
     protected lineSpace: Array<number>;
 
+    /** Local rendering canvas (offset buffer) */
     protected localCanvas: HTMLCanvasElement;
+    /** Local rendering context */
     protected localCtx: CanvasRenderingContext2D;
 
+    /**
+     * @param text Text to render
+     * @param position Upper-left corner of text
+     * @param width Desired width. Should be at least large enougth to put a word on a line
+     * @param font [[Font]] used
+     * @param align Alignment type
+     */
     public constructor(protected text: string, protected position: Point, 
             protected width: number, protected font: Font = new Font(), 
             protected align: TextAlign = TextAlign.LEFT) {
@@ -52,7 +84,10 @@ export class Text {
         this.update();
     }
 
-    protected update() {
+    /**
+     * Updates text properties
+     */
+    protected update = (): void => {
         this.localCtx.fillStyle = this.font.color;
         this.localCtx.font = this.font.size + 'px ' + this.font.face;
         this.calculate(this.localCtx);
@@ -62,7 +97,10 @@ export class Text {
         this.prerender(this.localCtx);
     }
 
-
+    /**
+     * calculates text rendering properties
+     * @param context Rendering context
+     */
     protected calculate = (context: CanvasRenderingContext2D): void => {
 
         this.lines = new Array<Array<string>>();
@@ -77,7 +115,6 @@ export class Text {
         let currentLine: Array<string> = new Array<string>();
         let currentPosition: number = 0; // Current position in line
         let size: number = 0; // Size of current word
-        let spaceBefore: number = 0; // Space before line
 
         let paragraphs: Array<string> = this.text.split('\n');
         paragraphs.forEach((p: string): void => {
@@ -114,6 +151,12 @@ export class Text {
         this.height = this.lines.length * this.font.size + 0.25 * this.font.size;
     }
 
+    /**
+     * Calculates line spacing
+     * @param currentLine The line to parse
+     * @param currentPosition Size of text on line
+     * @param lastLine If the line is the last one (Used to avoid oddly justified text)
+     */
     protected setLineSpace = (currentLine: Array<string>, currentPosition: number, lastLine: boolean = false): void => {
         switch (this.align) {
             case TextAlign.RIGHT:
@@ -142,14 +185,19 @@ export class Text {
     }
 
     /**
-     * Retrieves height of the text block. Set to 0 until first rendering 
-     * (aka no size until context is known).
+     * Retrieves height of the text block.
+     * 
+     * @returns Text height
      */
     public getHeight = (): number => {
         return this.height;
     }
 
 
+    /**
+     * Renders text on an offscreen canvas
+     * @param context Rendering context
+     */
     protected prerender = (context: CanvasRenderingContext2D): void => {
         this.localCtx.fillStyle = this.font.color;
         this.localCtx.font = this.font.size + 'px ' + this.font.face; 
@@ -172,6 +220,10 @@ export class Text {
         }
     }
 
+    /**
+     * Renders text on client canvas. useful for [[Sprite]] integration
+     * @param context Rendering context
+     */
     public render = (context: CanvasRenderingContext2D): void => {
         context.drawImage(this.localCanvas, this.position.x, this.position.y);
     }    

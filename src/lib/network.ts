@@ -1,5 +1,21 @@
+/**
+ * Exposes network-related functions
+ */
+
+/**
+ * 
+ */
+
+/**
+ * Simple ajax functions
+ */
 export class Net {
 
+    /**
+     * Async xhr GET call 
+     * @param url url of service
+     * @param callback Callback method
+     */
     public static get = (url: string, callback: (message: any) => void): void => {
         let xhr = new XMLHttpRequest();
         xhr.open('GET', url);
@@ -11,6 +27,12 @@ export class Net {
         xhr.send();
     }
 
+    /**
+     * Async xhr POST call 
+     * @param url url of service
+     * @param content Request body. Content is serialized in Json
+     * @param callback Callback method
+     */
     public static post = (url: string, content: any, callback: (message: any) => void): void => {
         let xhr = new XMLHttpRequest();
         xhr.open('POST', url);

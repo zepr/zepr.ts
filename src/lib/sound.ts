@@ -1,16 +1,35 @@
+/**
+ * Exposes sound-related functions
+ */
+
+/**
+ * 
+ */
+
+
+/**
+ * Each instance can manage a sound or music for the duration of the application
+ */
 export class Sound {
 
+	/** Global audioContext */
     protected static readonly context: AudioContext = new AudioContext();
-
+	/** Memory buffer of audio file */
     protected data: AudioBuffer;
-
+	/** Source used to play sound */
     protected source: AudioBufferSourceNode;
-
-    protected _complete: boolean;
+	/** Load status */
+	protected _complete: boolean;
+	
+	/** Checks if audio read is complete. Complete does not mean playable! */
     get complete(): boolean {
         return this._complete;
     }
 
+	/**
+	 * Initialises instance with the managed sound.
+	 * @param fileUrl url of the sound file
+	 */
     public constructor(fileUrl: string) {
         this._complete = false;
 
@@ -41,6 +60,12 @@ export class Sound {
   		req.send();        
     }
 
+	/**
+	 * Plays sound 
+	 * @param loop if the sound or music should be looped
+	 * 
+	 * @returns true if the data is available and the command was executed
+	 */
 	public play = (loop: boolean = false): boolean => {
 		if (this.data) {
 			this.source = Sound.context.createBufferSource();
@@ -53,7 +78,12 @@ export class Sound {
         }
 		return false;
     }
-    
+	
+	/**
+	 * Stops sound
+	 * 
+	 * @returns true if the last command was [[play]]
+	 */
 	public stop = (): boolean => {
 		if (this.source) {
 			this.source.stop();
