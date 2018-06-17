@@ -18,6 +18,26 @@ In your source code, simply add
 import Zepr = require('zepr.ts');
 ```
 
+## API Documentation 
+
+### Online
+
+API documentation is available [here](https://zepr.fr/zepr.ts/api)
+
+### Do it yourself (from source code)
+
+Install TypeDoc 
+
+```
+npm install --global typedoc
+```
+
+In the project, run
+
+```
+typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engine"
+```
+
 ## Changelog
 
 ### 0.0.4 - 2018.06.18
