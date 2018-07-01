@@ -13,7 +13,7 @@
 export class Sound {
 
 	/** Global audioContext */
-    protected static readonly context: AudioContext = new AudioContext();
+    protected static readonly context: AudioContext = new ((<any>window).AudioContext || (<any>window).webkitAudioContext)();
 	/** Memory buffer of audio file */
     protected data: AudioBuffer;
 	/** Source used to play sound */

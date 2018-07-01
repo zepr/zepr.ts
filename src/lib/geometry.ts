@@ -132,7 +132,7 @@ export class Vector {
     /**
      * Returns length of Vector
      * 
-     * @returns lenght (magnitude) of the Vector
+     * @returns length (magnitude) of the Vector
      */
     public getLength = (): number => {
         return Math.sqrt(this._x * this._x + this._y * this._y);
@@ -141,7 +141,7 @@ export class Vector {
     /**
      * Returns length of Vector (synonym of [[getLength]])
      * 
-     * @returns lenght (magnitude) of the Vector
+     * @returns length (magnitude) of the Vector
      */
     public getMagnitude = (): number => {
         return this.getLength();
@@ -184,7 +184,7 @@ export class Vector {
     }
 
     /**
-     * Returns the direction of the Vector. A zero-le,ght Vector has an angle of 0
+     * Returns the direction of the Vector. A zero-lenght Vector has an angle of 0
      * 
      * @returns The direction of the Vector in degrees relative to noon ([0; -1])
      */

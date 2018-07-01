@@ -40,6 +40,10 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 
 ## Changelog
 
+### 0.0.5 - 2018.07.01
+
+- BugFix AudioContext problem with Safari
+
 ### 0.0.4 - 2018.06.18
 
 - Added support for typeDoc
