@@ -1,4 +1,4 @@
-# zepr.ts v0.0.4
+# zepr.ts v0.0.5
 
 A simple HTML5 rendering engine
 
@@ -22,7 +22,7 @@ import Zepr = require('zepr.ts');
 
 ### Online
 
-API documentation is available [here](https://zepr.fr/zepr.ts/api)
+API documentation is available [here](https://zepr.fr/zts/api)
 
 ### Do it yourself (from source code)
 
