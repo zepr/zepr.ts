@@ -334,7 +334,7 @@ export class Engine {
             this.mouseEvent = null;
         }
 
-        if (this.zoomEnabled && this.touchZoomState.next != 0 && this.touchZoomState.current != this.touchZoomState.next) {                
+        if (this.zoomEnabled && this.touchZoomState.next != 0 && this.touchZoomState.current != this.touchZoomState.next) {
             if (this.touchZoomState.current != 0) {
                 this.zoomState.next *= this.touchZoomState.next / this.touchZoomState.current;
             }
@@ -430,7 +430,8 @@ export class Engine {
             }
 
             window.addEventListener<'wheel'>('wheel', this.onZoom);
-            window.addEventListener<'touchmove'>('touchmove', this.onZoom);
+            window.addEventListener<'touchmove'>('touchmove', this.onZoom, { passive: false });
+            window.addEventListener<'touchend'>('touchend', this.onEndZoom, { passive: false });
 
             this.zoomEnabled = true;
         }
@@ -447,6 +448,7 @@ export class Engine {
             }
             window.removeEventListener<'wheel'>('wheel', this.onZoom);
             window.removeEventListener<'touchmove'>('touchmove', this.onZoom);
+            window.removeEventListener<'touchend'>('touchend', this.onEndZoom);
 
             this.zoomEnabled = false;
         }
@@ -475,6 +477,15 @@ export class Engine {
                 ).getLength();
             }
         }
+    }
+
+    /**
+     * Reset state when zoom touch ends
+     * @param event Source event
+     */
+    protected onEndZoom = (event: TouchEvent): void => {
+        this.touchZoomState.current = 0;
+        this.touchZoomState.next = 0;       
     }
 
     /**

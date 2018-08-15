@@ -1,4 +1,4 @@
-# zepr.ts v0.0.5
+# zepr.ts v0.0.6
 
 A simple HTML5 rendering engine
 
@@ -39,6 +39,10 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 ```
 
 ## Changelog
+
+### 0.0.6 - 2018.08.15
+
+- BugFix Touch zoom (no more zoom reset + removed browser warning)
 
 ### 0.0.5 - 2018.07.01
 
