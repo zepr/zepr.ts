@@ -1,4 +1,4 @@
-# zepr.ts v0.0.6
+# zepr.ts v0.0.7
 
 A simple HTML5 rendering engine
 
@@ -39,6 +39,11 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 ```
 
 ## Changelog
+
+### 0.0.7 - 2018.08.16
+
+- BugFix [again] Touch zoom (completely removed 'passive' Chrome warning)
+- Prevents concurrent drag + zoom
 
 ### 0.0.6 - 2018.08.15
 

@@ -87,7 +87,9 @@ export class Engine {
     /** Minimum zoom value */
     private minZoom: number;
     /** Maximum zoom value */
-    private maxZoom: number;
+    private maxZoom: number; 
+    /** Is touch currently used to zoom  */
+    private isTouchZoom: boolean;
 
     /**
      * Defines an Engine. The scene is always maximized and centered on screen with preservation of its aspect ratio (Adds borders when needed)
@@ -238,7 +240,8 @@ export class Engine {
         this.zoomState = new State();
         this.zoomState.current = 1;
         this.touchZoomState = new State();
-        this.touchZoomState.current = 0;        
+        this.touchZoomState.current = 0;
+        this.isTouchZoom = false;        
     }
 
 
@@ -353,12 +356,12 @@ export class Engine {
             this.zoomState.current = this.zoomState.next;
         }
 
-        if (this.mouseEnabled && uncasted.onDrag !== undefined && !this.mouseMovement.isZeroLength()) {                
+        if (this.mouseEnabled && !this.isTouchZoom
+            && uncasted.onDrag !== undefined && !this.mouseMovement.isZeroLength()) {
+
             let dragScreen: DragListener = <DragListener>uncasted;
-            
             dragScreen.onDrag(this, this.mouseMovement);
             this.mouseMovement.set(0, 0);
-
         }
 
         // End drag
@@ -471,6 +474,7 @@ export class Engine {
 
         } else { // TouchEvent
             if (event.touches.length > 1) {
+                this.isTouchZoom = true;
                 this.touchZoomState.next = new Vector(
                     event.touches.item(0).pageX - event.touches.item(1).pageX,
                     event.touches.item(0).pageY - event.touches.item(1).pageY
@@ -485,7 +489,10 @@ export class Engine {
      */
     protected onEndZoom = (event: TouchEvent): void => {
         this.touchZoomState.current = 0;
-        this.touchZoomState.next = 0;       
+        this.touchZoomState.next = 0;
+        if (event.touches.length == 0) {
+            this.isTouchZoom = false;
+        }    
     }
 
     /**
@@ -534,6 +541,8 @@ export class Engine {
 
         if (this.zoomEnabled && window.ontouchstart 
             && event instanceof TouchEvent && event.touches.length > 1) {
+            
+            this.isTouchZoom = true;
             this.touchZoomState.current = new Vector(
                 event.touches.item(0).pageX - event.touches.item(1).pageX,
                 event.touches.item(0).pageY - event.touches.item(1).pageY
@@ -550,10 +559,10 @@ export class Engine {
                 this.mousePrevious = this.mouseEvent.clone();
     
                 window.addEventListener<'mousemove'>('mousemove', this.onMove);
-                window.addEventListener<'touchmove'>('touchmove', this.onMove);
+                window.addEventListener<'touchmove'>('touchmove', this.onMove, { passive: false });
     
                 window.addEventListener<'mouseup'>('mouseup', this.onUp);
-                window.addEventListener<'touchend'>('touchend', this.onUp);
+                window.addEventListener<'touchend'>('touchend', this.onUp, { passive: false });
             }    
         }
     }
@@ -581,12 +590,14 @@ export class Engine {
     protected onUp = (event: MouseEvent | TouchEvent): boolean => {
         event.preventDefault();
 
-        if (this.mouseMoveEnabled) {
+        if (this.mouseMoveEnabled && !this.isTouchZoom) {
             let newPosition: Point = this.getEventPosition(event);
             if (newPosition != null) {
                 this.mouseMovement.add(newPosition.x - this.mousePrevious.x, newPosition.y - this.mousePrevious.y);
                 this.mousePrevious = newPosition;
             }
+        } else {
+            this.mouseMovement.set(0, 0);    
         }
 
         window.removeEventListener<'mousemove'>('mousemove', this.onMove);
