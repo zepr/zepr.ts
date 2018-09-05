@@ -1,6 +1,6 @@
 {
   "name": "zepr.ts",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "A simple HTML5 rendering engine",
   "main": "dist/index",
   "typings": "dist/index",
@@ -36,5 +36,8 @@
     "dist/index.js",
     "dist/index.d.ts",
     "dist/lib"
-  ]
+  ],
+  "dependencies": {
+    "npm": "^6.4.1"
+  }
 }

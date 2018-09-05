@@ -1,4 +1,4 @@
-# zepr.ts v0.0.7
+# zepr.ts v0.0.8
 
 A simple HTML5 rendering engine
 
@@ -39,6 +39,11 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 ```
 
 ## Changelog
+
+### 0.0.8 - 2018.09.05
+
+- Improvements for Sound class, ready for Chrome 70 autoplay policy
+- New method `setZoom()`
 
 ### 0.0.7 - 2018.08.16
 

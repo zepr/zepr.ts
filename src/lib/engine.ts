@@ -307,6 +307,15 @@ export class Engine {
     }
 
 
+    /**
+     * Defines new zoom value. Ignored without [[enableZoomControl]]
+     * @param newZoom New zoom value, within the minZoom - maxZoom limits
+     */
+    public setZoom = (newZoom: number): void => {
+        this.zoomState.next = newZoom;
+    }
+
+
     /* MOUSE CONTROL */
     /* START */
 
