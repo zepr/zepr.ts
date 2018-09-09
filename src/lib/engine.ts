@@ -10,6 +10,7 @@
 import { Point, Vector, Rectangle } from './geometry'
 import { GameScreen, ClickListener, ZoomListener, DragListener } from './screen';
 import { Sprite } from './sprite';
+import { ResourcesLoader, LoaderScreen, DefaultLoaderScreen } from './loader';
 
 /**
  * A simple state transition class
@@ -91,12 +92,19 @@ export class Engine {
     /** Is touch currently used to zoom  */
     private isTouchZoom: boolean;
 
+    /** Resources loader */
+    private resourcesLoader: ResourcesLoader;
+    /** Loader screen */
+    private loaderScreen: LoaderScreen;
+    /** If loader is initialised */
+    private initLoader: boolean;
+
     /**
      * Defines an Engine. The scene is always maximized and centered on screen with preservation of its aspect ratio (Adds borders when needed)
-     * @param width Scene width
-     * @param height Scene height
+     * @param _width Scene width
+     * @param _height Scene height
      */
-    public constructor(private width: number, private height: number) {
+    public constructor(private _width: number, private _height: number, _loader?: LoaderScreen) {
 
         // Always create a new canvas
         this.canvas = document.createElement<'canvas'>('canvas');
@@ -111,21 +119,31 @@ export class Engine {
         this.coords = new Rectangle();
 
         this.offCanvas = document.createElement<'canvas'>('canvas');
-        this.offCanvas.width = width;
-        this.offCanvas.height = height;
+        this.offCanvas.width = _width;
+        this.offCanvas.height = _height;
         this.offCtx = this.offCanvas.getContext('2d');
 
         // Caches
         this.cache = new Map<string, any>();
         this.screenCache = new Map<string, GameScreen>();
 
+        // Resources preloading
+        this.resourcesLoader = new ResourcesLoader(this.cache);
+        if (_loader == null) {
+            this.loaderScreen = new DefaultLoaderScreen();
+        } else {
+            this.loaderScreen = _loader;
+        }
+
+        // Set default values
+        this.reset();
+
         // Manage resize
         window.addEventListener<'resize'>('resize', this.resize);
         window.addEventListener<'orientationchange'>('orientationchange', this.resize);
         this.resize();
 
-        this.reset();
-
+        // Initialise main loop
         window.requestAnimationFrame(this.run);
     }
 
@@ -134,7 +152,7 @@ export class Engine {
      * @param event Resize event
      */
     protected resize = (event?: UIEvent): void => {
-        const ratio: number = this.width / this.height;
+        const ratio: number = this._width / this._height;
         
 		this.canvas.width = window.innerWidth;
 		this.canvas.height = window.innerHeight;
@@ -145,14 +163,14 @@ export class Engine {
 		if (newRatio > ratio) {
             let realWidth = this.canvas.height * ratio;
             this.coords.moveTo((this.canvas.width - realWidth) / 2, 0);
-			scale = this.canvas.height / this.height;
+			scale = this.canvas.height / this._height;
 		} else {
             var realHeight = this.canvas.width / ratio;
             this.coords.moveTo(0, (this.canvas.height - realHeight) / 2);
-			scale = this.canvas.width / this.width;
+			scale = this.canvas.width / this._width;
 		}
 
-        this.coords.resize(this.width * scale, this.height * scale);
+        this.coords.resize(this._width * scale, this._height * scale);
     }
 
     /**
@@ -163,7 +181,7 @@ export class Engine {
             this.offCtx.drawImage(this.background, 0, 0);
         } else {
             this.offCtx.fillStyle = this.backgroundColor;
-            this.offCtx.fillRect(0, 0, this.width, this.height);
+            this.offCtx.fillRect(0, 0, this._width, this._height);
         }
 
         // Draw sprites
@@ -189,12 +207,29 @@ export class Engine {
         if (this.nextScreen) {
             if (this.screen) {
                 this.reset();
+                this.screen = null;
             }
-            
-            this.screen = this.nextScreen;
-            this.nextScreen = null;
 
-            this.screen.init(this);
+            // Manage resources preloader
+            if (this.resourcesLoader.complete()) {
+                // Switch to next screen
+                this.screen = this.nextScreen;
+                this.nextScreen = null;
+
+                this.screen.init(this);
+            } else {
+                // Init loader
+                if (!this.initLoader) {
+                    this.loaderScreen.init(this);
+                    this.initLoader = true;
+                }
+
+                // Update loader
+                this.loaderScreen.run(this, this.resourcesLoader.update());
+                if (this.resourcesLoader.complete()) {
+                    this.reset();
+                }
+            }
         }
 
         if (this.screen) {
@@ -214,6 +249,17 @@ export class Engine {
         window.requestAnimationFrame(this.run);
     }
 
+
+    /** Screen width */
+    get width(): number {
+        return this._width;
+    }
+
+    /** Screen height */
+    get height(): number {
+        return this._height;
+    }
+    
 
     /** 
      * Resets screen settings. Internally used for screen switch
@@ -241,7 +287,10 @@ export class Engine {
         this.zoomState.current = 1;
         this.touchZoomState = new State();
         this.touchZoomState.current = 0;
-        this.isTouchZoom = false;        
+        this.isTouchZoom = false;      
+        
+        // Loader
+        this.initLoader = false;
     }
 
 
@@ -282,6 +331,7 @@ export class Engine {
      * @returns current engine (to chain screen definitions)
      */
     public addScreen = (name: string, newScreen: GameScreen): Engine => {
+        this.resourcesLoader.addResources(newScreen);
         this.screenCache.set(name, newScreen);
         return this;
     }

@@ -14,6 +14,12 @@ import { Sprite } from './sprite';
  * Mandatory interface for screens
  */
 export interface GameScreen {
+
+    /** Images to preload */
+    images?: Array<string>;
+    /** Sounds to preload */
+    sounds?: Array<string>;
+
     /** 
      * Initialises scene. This method is called each time the screen is activated
      * @param engine A reference to the active engine

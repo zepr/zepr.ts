@@ -1,4 +1,4 @@
-# zepr.ts v0.0.8
+# zepr.ts v0.0.9
 
 A simple HTML5 rendering engine
 
@@ -39,6 +39,10 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 ```
 
 ## Changelog
+
+### 0.0.9 - 2018.09.09
+
+- Resource loader with default (basic) loader screen
 
 ### 0.0.8 - 2018.09.05
 
