@@ -50,8 +50,6 @@ export class Engine {
 
     /** Object cache */
     private cache: Map<string, any>;
-    /** Screen cache */
-    private screenCache: Map<string, GameScreen>;
 
     /** Current screen */
     private screen: GameScreen;
@@ -99,10 +97,18 @@ export class Engine {
     /** If loader is initialised */
     private initLoader: boolean;
 
+    /** Screen overflow */
+    private overflow: boolean;
+    /** Screen overflow center */
+    private overflowCenter: Point;
+    /** If overflow is horizontal */
+    private horizontalOverflow: boolean;
+
     /**
      * Defines an Engine. The scene is always maximized and centered on screen with preservation of its aspect ratio (Adds borders when needed)
      * @param _width Scene width
      * @param _height Scene height
+     * @param _loader Optional custom screen loader
      */
     public constructor(private _width: number, private _height: number, _loader?: LoaderScreen) {
 
@@ -123,9 +129,8 @@ export class Engine {
         this.offCanvas.height = _height;
         this.offCtx = this.offCanvas.getContext('2d');
 
-        // Caches
+        // Cache
         this.cache = new Map<string, any>();
-        this.screenCache = new Map<string, GameScreen>();
 
         // Resources preloading
         this.resourcesLoader = new ResourcesLoader(this.cache);
@@ -135,13 +140,12 @@ export class Engine {
             this.loaderScreen = _loader;
         }
 
-        // Set default values
-        this.reset();
-
         // Manage resize
         window.addEventListener<'resize'>('resize', this.resize);
         window.addEventListener<'orientationchange'>('orientationchange', this.resize);
-        this.resize();
+
+        // Set default values
+        this.reset();
 
         // Initialise main loop
         window.requestAnimationFrame(this.run);
@@ -160,17 +164,24 @@ export class Engine {
         const newRatio: number = this.canvas.width / this.canvas.height;
         let scale: number;        
 
-		if (newRatio > ratio) {
-            let realWidth = this.canvas.height * ratio;
+        if ((newRatio > ratio) != this.overflow) {
+            let realWidth: number = this.canvas.height * ratio;
             this.coords.moveTo((this.canvas.width - realWidth) / 2, 0);
-			scale = this.canvas.height / this._height;
-		} else {
-            var realHeight = this.canvas.width / ratio;
+            scale = this.canvas.height / this._height;
+            this.horizontalOverflow = true;
+        } else {
+            let realHeight: number = this.canvas.width / ratio;
             this.coords.moveTo(0, (this.canvas.height - realHeight) / 2);
-			scale = this.canvas.width / this._width;
-		}
+            scale = this.canvas.width / this._width;
+            this.horizontalOverflow = false;
+        }
 
         this.coords.resize(this._width * scale, this._height * scale);
+
+        // Set center position when set in overflow
+        if (this.overflow && this.overflowCenter != null) {
+            this.setCenter(this.overflowCenter);
+        }
     }
 
     /**
@@ -260,7 +271,6 @@ export class Engine {
         return this._height;
     }
     
-
     /** 
      * Resets screen settings. Internally used for screen switch
      */
@@ -291,6 +301,59 @@ export class Engine {
         
         // Loader
         this.initLoader = false;
+
+        // Overflow
+        this.overflowCenter = null;
+        this.setOverflow(false);
+    }
+
+
+    /**
+     * Changes overflow state
+     * @param _overflow New overflow state
+     */
+    public setOverflow = (_overflow: boolean): void => {
+        if (this.overflow != _overflow) {
+            this.overflow = _overflow;
+            this.resize();
+        }
+    }
+
+    /**
+     * Centers scene. This setting has no effect if there's no overflow
+     * @param position New centered position. Use null to set center in the middle of the scene
+     */
+    public setCenter = (position: Point): void => {
+        this.overflowCenter = position;
+
+        if (!this.overflow) return;
+
+        let scale: number;
+        if (this.horizontalOverflow) {
+            scale = this.canvas.height / this._height;   
+            this.coords.moveTo(Math.max(this.canvas.width - this.coords.width, Math.min(0, (this.canvas.width / 2) - this.overflowCenter.x * scale)), 0);
+        } else {
+            scale = this.canvas.width / this._width;
+            this.coords.moveTo(0, Math.max(this.canvas.height - this.coords.height, Math.min(0, (this.canvas.height / 2) - this.overflowCenter.y * scale)));
+        }
+    }
+
+
+    /**
+     * Loads object from cache
+     * @param key id of the object to load
+     */
+    public getData = (key: string): any => {
+        return this.cache.get('custom.' + key);
+    }
+
+    /**
+     * Stores object to cache
+     * @param key id of the object to store
+     * @param value object to store
+     */
+    public setData = (key: string, value: any): void => {
+        this.cache.set('custom.' + key, value);
     }
 
 
@@ -332,7 +395,7 @@ export class Engine {
      */
     public addScreen = (name: string, newScreen: GameScreen): Engine => {
         this.resourcesLoader.addResources(newScreen);
-        this.screenCache.set(name, newScreen);
+        this.cache.set('screen.' + name, newScreen);
         return this;
     }
 
@@ -343,7 +406,7 @@ export class Engine {
      */
     public start = (newScreen: string | GameScreen): void => {
         if (typeof newScreen === 'string') {
-            this.nextScreen = this.screenCache.get(newScreen);
+            this.nextScreen = <GameScreen>this.cache.get('screen.' + newScreen);
         } else {
             this.nextScreen = newScreen;
         }

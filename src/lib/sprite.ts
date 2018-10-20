@@ -6,6 +6,7 @@
  * 
  */
 import { Point, Rectangle } from './geometry';
+import { Text, TextAlign, Font } from './text'
 
 /**
  * Set of positions, clockwise from noon
@@ -252,6 +253,7 @@ export class TiledSprite extends ImageSprite {
      * @param orientationDegree New orientation in degrees
      */
     public setOrientation = (orientationDegree: number): void => {
+        if (Number.isNaN(orientationDegree)) orientationDegree = 0;
         let newDir = Math.floor(((orientationDegree % 360) + 22.5) / 45);
         if (newDir < 0) { newDir += 8; };
 
@@ -286,3 +288,54 @@ export class TiledSprite extends ImageSprite {
         }
     }    
 }
+
+/**
+ * Simple sprite wrapper for Text
+ */
+export class TextSprite extends Sprite {
+
+    /** Canvas used for off-screen rendering (double buffering) */
+    private offCanvas: HTMLCanvasElement;
+    /** off-screen Canvas rendering context */
+    private offCtx: CanvasRenderingContext2D;
+    
+    /** Text content */
+    private text: string;
+
+    public constructor(text: string, position: Rectangle, private font: Font, private align: TextAlign, index?: number) {
+        super(position, index);
+
+        this.offCanvas = document.createElement<'canvas'>('canvas');
+        this.offCanvas.width = position.width;
+        this.offCanvas.height = position.height;
+        this.offCtx = this.offCanvas.getContext('2d');
+
+        if (text != null) {
+            this.setText(text);
+        }
+    }
+
+    /**
+     * Defines new content for text sprite
+     * @param text Text to display
+     */
+    public setText(text: string) {
+        this.text = text;
+        this.offCtx.clearRect(0, 0, this.rect.width, this.rect.height);
+        if (text == null) return;
+        new Text(text, new Point(10, 0), this.rect.width - 20, this.font, this.align).render(this.offCtx);
+    }
+
+    /**
+     * Returns current text
+     */
+    public getText(): string {
+        return this.text;
+    }
+
+    public render(context: CanvasRenderingContext2D): void {
+        context.drawImage(this.offCanvas, this.rect.x, this.rect.y);
+    }
+
+}
+

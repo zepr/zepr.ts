@@ -1,4 +1,4 @@
-# zepr.ts v0.0.9
+# zepr.ts v0.1.0
 
 A simple HTML5 rendering engine
 
@@ -39,6 +39,14 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 ```
 
 ## Changelog
+
+### 0.1.0 - 2018.10.20
+
+New elements for a new project
+- Added overflow mode (scene is full screen and scrollable)
+- Added simple `Sprite` wrapper for `Text`
+- Added accessors to unified cache (No more screen cache)
+- BugFix NaN on direction for `TiledSprite`
 
 ### 0.0.9 - 2018.09.09
 
