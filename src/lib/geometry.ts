@@ -218,10 +218,28 @@ export class Vector {
     }
 }
 
+
+export interface Shape<T> {
+    move(newX: number, newY: number): T;
+    moveTo(newX: number, newY: number): T;
+    scale(ratio: number): T;
+    clone(): T;
+    contains(p: Point): boolean;
+    collides(s: Shape<any>): boolean;
+}
+
+
 /**
  * Represents a Rectangle
  */
-export class Rectangle {
+export class Rectangle implements Shape<Rectangle> {
+    /**
+     * Creates a new Rectangle
+     * @param _x Abscissa of upper-left corner
+     * @param _y Ordinate of upper-left corner
+     * @param _width width of Rectangle
+     * @param _height height of Rectangle
+     */
     constructor(private _x: number = 0, private _y: number = 0, 
         private _width: number = 0, private _height: number = 0) {
     }
@@ -347,15 +365,168 @@ export class Rectangle {
     }
 
     /**
-     * Checks if Rectangle collides another one 
-     * @param r Rectangle to check
+     * Checks if Rectangle collides another shape
+     * @param shape Shape to check
      * 
-     * @returns true only if provided Rectangle collides current Rectangle
+     * @returns true only if provided shape collides current Rectangle
      */
-    public collide = (r: Rectangle): boolean => {
-        return this.x < r.x + r.width 
-            && this.x + this.width > r.x 
-            && this.y < r.y + r.height 
-            && this.y + this.height > r.y;
+    public collides = (shape: Shape<any>): boolean => {
+
+        if (shape instanceof Rectangle) {
+            let r: Rectangle = <Rectangle>shape;
+
+            return this.x < r.x + r.width 
+                && this.x + this.width > r.x 
+                && this.y < r.y + r.height 
+                && this.y + this.height > r.y;
+        } else if (shape instanceof Circle) {
+            let c: Circle = <Circle>shape;
+
+            let rcx: number = this.x + (this.width >> 1); // x coord of center of rect
+            let rcy: number = this.y + (this.height >> 1); // y coord of center of rect
+
+            let dx = Math.abs(c.x - rcx); // Delta x between rectangle and circle
+            let dy = Math.abs(c.y - rcy); // Delta y between rectangle and circle
+
+            // Check trivial cases
+            if (dx > (this.width >> 1) + c.radius) return false;
+            if (dy > (this.height >> 1) + c.radius) return false;
+            if (dx <= (this.width >> 1)) return true;
+            if (dy <= (this.height >> 1)) return true;
+
+            // Check corner
+            return (dx - (this.width >> 1)) * (dx - (this.width >> 1)) + (dy - (this.height >> 1)) * (dx - (this.height >> 1)) <= c.radius * c.radius;
+        } else {
+            // Call other side (Same as previous case with Rectangle)
+            // Non trivial shapes implementations should take care of loops
+            return shape.collides(this);
+        }
+    }
+}
+
+
+export class Circle implements Shape<Circle> {
+    /**
+     * Creates a new Circle
+     * @param _x Abscissa of center
+     * @param _y Ordinate of center
+     * @param _radius Radius of circle
+     */
+    constructor(private _x: number = 0, private _y: number = 0, private _radius: number = 0) {
+    }
+
+    /** Abscissa of center */
+    get x(): number {
+        return this._x;
+    }
+
+    /** Ordinate of center */
+    get y(): number {
+        return this._y;
+    }
+
+    /** Radius of Circle */
+    get radius(): number {
+        return this._radius;
+    }
+
+
+    /**
+     * Translates current Circle to relative coordinates
+     * @param newX Added to current abscissa
+     * @param newY Added to current ordinate
+     * 
+     * @returns Current Circle
+     */
+    public move = (newX: number, newY: number): Circle => {
+        this._x += newX;
+        this._y += newY;
+
+        return this;
+    }
+
+    /**
+     * Translates current Circle to absolute coordinates
+     * @param newX New center abscissa
+     * @param newY New center ordinate
+     *
+     * @returns Current Circle
+     */
+    public moveTo = (newX: number, newY: number): Circle => {
+        this._x = newX;
+        this._y = newY;
+
+        return this;
+    }
+
+
+    /**
+     * Changes size of Circle
+     * @param newRadius New radius
+     * 
+     * @returns Current Circle
+     */
+    public scale = (newRadius: number): Circle => {
+        this._radius = newRadius;
+
+        return this;
+    }
+
+
+    /**
+     * Resets Circle dimensions
+     * @param newX New abscissa of center
+     * @param newY New ordinate of center
+     * @param newWidth New radius
+     * 
+     * @returns Current Circle
+     */
+    public reset = (newX: number, newY: number, newRadius: number): Circle => {
+        this._x = newX;
+        this._y = newY;
+        this._radius = newRadius;
+
+        return this;
+    }
+
+    /**
+     * Clones current Circle
+     * 
+     * @returns A copy of current Circle
+     */
+    public clone = (): Circle => {
+        return new Circle(this._x, this._y, this._radius);
+    }
+
+
+    /**
+     * Checks if a point is within the bounds (inclusive) of a Circle
+     * @param p Point to check
+     * 
+     * @returns true only if Point is inside current Circle
+     */
+    public contains = (p: Point): boolean => {
+        return (p.x - this._x) * (p.x - this._x) + (p.y - this._y) * (p.y - this._y) <= this._radius * this._radius;
+    }
+
+
+    /**
+     * Checks if Circle collides another shape
+     * @param shape Shape to check
+     * 
+     * @returns true only if provided shape collides current Circle
+     */
+    public collides = (shape: Shape<any>): boolean => {
+        if (shape instanceof Circle) {  // Circle
+            let c: Circle = <Circle>shape;
+            return (this.x - c.x) * (this.x - c.x) + (this.y - c.y) * (this.y - c.y) <= (this.radius + c.radius) * (this.radius + c.radius);
+        } else if (shape instanceof Rectangle) {
+            // Use rectangle collision check
+            return shape.collides(this);
+        } else { // Other shape
+            // Call other side (Same as previous case with Rectangle)
+            // Non trivial shapes implementations should take care of loops
+            return shape.collides(this);
+        }
     }
 }

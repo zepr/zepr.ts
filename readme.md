@@ -1,4 +1,4 @@
-# zepr.ts v0.1.0
+# zepr.ts v0.1.1
 
 A simple HTML5 rendering engine
 
@@ -39,6 +39,11 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 ```
 
 ## Changelog
+
+### 0.1.1 - 2018.10.27
+
+- Added `Shape` interface and `Circle` implementation
+- Added rotation to `ImageSprite`
 
 ### 0.1.0 - 2018.10.20
 

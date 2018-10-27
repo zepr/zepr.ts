@@ -114,8 +114,8 @@ export abstract class Sprite {
      * 
      * @returns true only if provided Rectangle collides the Sprite
      */
-    public collide = (r: Rectangle): boolean => {
-        return this.rect.collide(r);
+    public collides = (r: Rectangle): boolean => {
+        return this.rect.collides(r);
     }
 
     /**
@@ -134,6 +134,9 @@ export class ImageSprite extends Sprite {
     /** Managed image */
     protected spriteImage: HTMLImageElement;
 
+    /** Angle of rotation (rad) */
+    protected rotation: number;
+
     /**
      * @param image Reference to managed image. May be an image or a canvas
      * @param position Position of the sprite
@@ -145,6 +148,7 @@ export class ImageSprite extends Sprite {
 
         super(position, index);
         this.setImage(image);
+        this.rotation = 0;
     }
 
     /**
@@ -184,12 +188,48 @@ export class ImageSprite extends Sprite {
     }
 
     /**
+     * Set new rotation angle 
+     * @param degrees Rotation angle in degrees (from original image)
+     */
+    public setRotation(degrees: number): void {
+        this.rotation = degrees * Math.PI / 180;
+    }
+
+    /**
+     * Adds angle to current rotation
+     * @param degrees Rotation angle in degrees (delta)
+     */
+    public addRotation(degrees: number): void {
+        this.rotation += degrees * Math.PI / 180;
+    }
+
+    /**
+     * Get current rotation angle
+     * 
+     * @returns rotation angle in degrees
+     */
+    public getRotation(): number {
+        return this.rotation * 180 / Math.PI;
+    }
+
+
+    /**
      * Render image sprite
      * @param context Rendering context
      */
     public render(context: CanvasRenderingContext2D): void {
         if (this.spriteImage.complete) {
-            context.drawImage(this.spriteImage, this.rect.x, this.rect.y);
+            if (this.rotation == 0) {
+                context.drawImage(this.spriteImage, this.rect.x, this.rect.y);
+            } else {
+                context.save();
+
+                context.translate(this.rect.x + (this.rect.width >> 1), this.rect.y + (this.rect.height >> 1));
+                context.rotate(this.rotation);
+                context.drawImage(this.spriteImage, -this.rect.width >> 1, -this.rect.height >> 1);
+
+                context.restore();
+            }
         }
     }
 }

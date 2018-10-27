@@ -1,12 +1,13 @@
 {
   "name": "zepr.ts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A simple HTML5 rendering engine",
   "main": "dist/index",
   "typings": "dist/index",
   "scripts": {
     "prepublishOnly": "npm run compile",
     "compile": "npm run clean && tsc -p .",
+    "test": "mocha -r ts-node/register src/**/*.spec.ts",
     "watch": "tsc -w -p .",
     "clean": "rm -rf dist"
   },
@@ -28,7 +29,12 @@
   ],
   "license": "LGPL-3.0-or-later",
   "devDependencies": {
+    "@types/chai": "^4.1.6",
+    "@types/mocha": "^5.2.5",
     "@types/node": "^8.0.0",
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0",
+    "ts-node": "^7.0.1",
     "typedoc": "^0.11.1",
     "typescript": "^2.8.3"
   },
