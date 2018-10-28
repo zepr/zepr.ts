@@ -1,4 +1,4 @@
-# zepr.ts v0.1.1
+# zepr.ts v0.1.2
 
 A simple HTML5 rendering engine
 
@@ -39,6 +39,10 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 ```
 
 ## Changelog
+
+### 0.1.2 - 2018.10.28
+
+- Added rotation to `Vector`
 
 ### 0.1.1 - 2018.10.27
 

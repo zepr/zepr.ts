@@ -183,8 +183,41 @@ export class Vector {
         return this;
     }
 
+
     /**
-     * Returns the direction of the Vector. A zero-lenght Vector has an angle of 0
+     * Rotates Vector
+     * @param degrees Rotation angle in degrees
+     * 
+     * @returns Current Vector
+     */
+    public rotate = (degrees: number): Vector => {
+        return this.rotateRad(degrees * Math.PI / 180);
+    }
+
+
+    /**
+     * Rotates Vector
+     * @param rad Rotation angle in radians
+     * 
+     * @returns Current Vector
+     */
+    public rotateRad = (rad: number): Vector => {
+
+        let cos: number = Math.cos(rad);
+        let sin: number = Math.sin(rad);
+
+        let newX: number = this._x * cos - this._y * sin;
+        let newY: number = this._x * sin + this._y * cos;
+
+        this._x = newX;
+        this._y = newY;
+
+        return this;
+    }
+
+
+    /**
+     * Returns the direction of the Vector. A zero-length Vector has an angle of 0
      * 
      * @returns The direction of the Vector in degrees relative to noon ([0; -1])
      */
