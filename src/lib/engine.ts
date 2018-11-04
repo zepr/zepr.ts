@@ -47,6 +47,8 @@ export class Engine {
     private background: HTMLImageElement | HTMLCanvasElement;
     /** Alternative background color if no image background is set */
     private backgroundColor: string;
+    /** Background position */
+    private backgroundPosition: Point;
 
     /** Object cache */
     private cache: Map<string, any>;
@@ -189,7 +191,11 @@ export class Engine {
      */
     protected repaint = (): void => {
         if (this.background) {
-            this.offCtx.drawImage(this.background, 0, 0);
+            if (this.backgroundPosition) {
+                this.offCtx.drawImage(this.background, this.backgroundPosition.x, this.backgroundPosition.y);
+            } else {
+                this.offCtx.drawImage(this.background, 0, 0);
+            }
         } else {
             this.offCtx.fillStyle = this.backgroundColor;
             this.offCtx.fillRect(0, 0, this._width, this._height);
@@ -278,6 +284,7 @@ export class Engine {
 
         // Background
         this.background = null;
+        this.backgroundPosition = null;
         this.backgroundColor = Engine.DEFAULT_BACKGROUND_COLOR;
 
         // Sprites
@@ -777,18 +784,27 @@ export class Engine {
 
         return false;
     }
-    
+
     /**
      * Defines current background image. The image is not distorted to fit the screen. 
      * @param bgImage The new background image. May be either an image, its relative or absolute url or a canvas
      */
-    public setBackground = (bgImage: HTMLImageElement | HTMLCanvasElement | string): void => {
-        if (bgImage instanceof HTMLImageElement) {
+    public setBackground = (bgImage: HTMLImageElement | HTMLCanvasElement | string, centered: boolean = false): void => {
+        if (bgImage == null) {
+            // Removes background
+            this.background = null;
+        } else if (bgImage instanceof HTMLImageElement) {
             this.background = <HTMLImageElement>bgImage;
         } else if (bgImage instanceof HTMLCanvasElement) {
             this.background = <HTMLCanvasElement>bgImage;
         } else { // string
             this.background = this.getImage(bgImage);
+        }
+
+        if (centered && this.background && this.background.width > 0 ) {
+            this.backgroundPosition = new Point((this.width - this.background.width) / 2, (this.height - this.background.height) /2);
+        } else {
+            this.backgroundPosition = null; // Background set at origin
         }
     }
 
