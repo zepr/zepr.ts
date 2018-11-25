@@ -9,7 +9,7 @@
 import { Engine } from './engine';
 import { GameScreen } from './screen';
 import { Sound } from './sound';
-import { Sprite, RawSprite } from './sprite';
+import { RawSprite } from './sprite';
 import { Point, Rectangle } from './geometry';
 import { TextAlign, Font, Text } from './text';
 

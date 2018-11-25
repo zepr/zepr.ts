@@ -40,6 +40,10 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 
 ## Changelog
 
+### 0.1.5 - 2018.11.25
+
+
+
 ### 0.1.4 - 2018.11.25
 
 Refactoring of sprite
