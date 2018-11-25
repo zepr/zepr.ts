@@ -53,7 +53,7 @@ export interface ClickListener {
      * @param point The position of the click
      * @param sprites The list of sprites under the click, if capture is enabled
      */
-    onClick(engine: Engine, point: Point, sprites: Array<Sprite>): void;
+    onClick(engine: Engine, point: Point, sprites: Array<Sprite<any>>): void;
 }
 
 /**

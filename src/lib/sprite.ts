@@ -5,7 +5,7 @@
 /**
  * 
  */
-import { Point, Rectangle } from './geometry';
+import { Point, Rectangle, Vector, Shape } from './geometry';
 import { Text, TextAlign, Font } from './text'
 
 /**
@@ -14,70 +14,36 @@ import { Text, TextAlign, Font } from './text'
 export enum Direction { Up, UpRight, Right, DownRight, Down, DownLeft, Left, UpLeft };
 
 /**
- * Mandatory class for sprites
+ * Mandatory interface for sprites
  */
-export abstract class Sprite {
-
-    /** Area covered by the sprite */
-    protected rect: Rectangle;
+export interface Sprite<T extends Shape<T>> {
 
     /**
-     * @param position Position of the sprite
-     * @param index Order for sprite rendering 
+     * Returns the shape used to define this sprite
+     * 
+     * @returns underlying shape
      */
-    public constructor(position: Rectangle | Point, protected index: number = 1) {
-        if (position instanceof Rectangle) {
-            this.rect = <Rectangle>position;
-        } else { // Point
-            this.rect = new Rectangle(position.x, position.y);
-        }
-    }
-
-    /**
-     * moves sprite to relative position
-     * @param newX Added to current abscissa
-     * @param newY Added to current ordinate
-     */
-    public move = (newX: number, newY: number): void => {
-        this.rect.move(newX, newY);
-    }
-
-    /**
-     * Moves sprite to absolute position
-     * @param newX New abscissa
-     * @param newY New ordinate
-     */
-    public moveTo = (newX: number, newY: number): void => {
-        this.rect.moveTo(newX, newY);
-    }
+    getShape(): T;
 
     /**
      * Gets abscissa of sprite
      * 
      * @returns Upper-left corner abscissa of sprite
      */
-    public getX = (): number => {
-        return this.rect.x;
-    }
-
+    getX(): number;
     /**
      * Gets ordinate of sprite
      * 
      * @returns upper-left corner ordinate of sprite
      */
-    public getY = (): number => {
-        return this.rect.y;
-    }
+    getY(): number;
 
     /**
      * Gets current index
      * 
      * @returns index of sprite
      */
-    public getIndex = (): number => {
-        return this.index;
-    }
-
+    getIndex(): number;
     /**
      * Set new index value. Whenever this method is called, engine must be informed
      * ```javascript
@@ -85,18 +51,36 @@ export abstract class Sprite {
      * ```
      * @param newIndex new index value.
      */
-    public setIndex = (newIndex: number): void => {
-        this.index = newIndex;
-    }
+    setIndex(newIndex: number): void;
+
+
 
     /**
-     * Gets reference to sprite Rectangle
-     * 
-     * @returns underlying Rectangle. May be modified directly
+     * moves sprite to relative position
+     * @param moveX Added to current abscissa
+     * @param moveY Added to current ordinate
      */
-    public getRect = (): Rectangle => {
-        return this.rect;
-    }
+    move(moveX: number, moveY: number);
+    /**
+     * moves sprite to relative position
+     * @param vect Added to current position
+     */
+    move(vect: Vector);
+
+
+    /**
+     * Moves sprite to absolute position
+     * @param coordX New abscissa
+     * @param coordY New ordinate
+     */
+    moveTo(coordX: number, coordY: number): void;
+    /**
+     * Moves sprite to absolute position
+     * @param point New position
+     */
+    moveTo(point: Point): void;
+
+
 
     /**
      * Checks if a point is within the bounds (inclusive) of a Sprite
@@ -104,8 +88,93 @@ export abstract class Sprite {
      * 
      * @returns true only if Point is inside current Sprite area
      */
-    public contains = (p: Point): boolean => {
-        return this.rect.contains(p);
+    contains(p: Point): boolean;
+    /**
+     * Checks if a point is within the bounds (inclusive) of a Sprite
+     * @param coordX Abscissa
+     * @param coordY Ordinate
+     * 
+     * @returns true only if Point is inside current Sprite area
+     */
+    contains(coordX: number, coordY: number): boolean;
+
+    /**
+     * Checks if Sprite collides a specified Shape
+     * @param s Shape to check
+     * 
+     * @returns true only if provided Rectangle collides the Sprite
+     */
+    collides(s: Shape<any>): boolean;
+
+
+
+    /**
+     * Renders the sprite. Called each frame for each sprite, in the index order
+     * @param context Rendering context
+     */
+    render(context: CanvasRenderingContext2D): void;
+}
+
+
+/**
+ * A simple abstract Sprite
+ */
+export abstract class RawSprite<T extends Shape<T>> implements Sprite<T> {
+
+    /**
+     * @param position Position of the sprite
+     * @param index Order for sprite rendering 
+     */
+    public constructor(protected shape: T, protected index: number = 1) {
+    }
+
+    public move(moveX: number, moveY: number): void;
+    public move(vect: Vector): void;
+    public move(moveXOrVect: number | Vector, moveY?: number): void {
+        if (typeof(moveXOrVect) === 'number') {
+            this.shape.move(moveXOrVect, moveY);
+        } else {
+            this.shape.move(moveXOrVect);
+        }
+    }
+
+
+    public moveTo(coordX: number, coordY: number): void;
+    public moveTo(point: Point);
+    public moveTo(coordXOrPoint: number | Point, coordY?: number): void {
+        if (typeof(coordXOrPoint) === 'number') {
+            this.shape.moveTo(coordXOrPoint, coordY);
+        } else {
+            this.shape.moveTo(coordXOrPoint);
+        }
+    }
+
+    public getX(): number {
+        return this.shape.x;
+    }
+    public getY(): number {
+        return this.shape.y;
+    }
+
+    public getIndex(): number {
+        return this.index;
+    }
+    public setIndex(newIndex: number): void {
+        this.index = newIndex;
+    }
+
+    public getShape(): T {
+        return this.shape;
+    }
+
+    public contains(p: Point): boolean;
+    public contains(coordX: number, coordY: number): boolean;
+    public contains(coordXOrPoint: number | Point, coordY?: number): boolean {
+        if (typeof(coordXOrPoint) === 'number') {
+            return this.shape.contains(coordXOrPoint, coordY);
+        } else {
+            return this.shape.contains(coordXOrPoint);
+        }
     }
 
     /**
@@ -114,14 +183,10 @@ export abstract class Sprite {
      * 
      * @returns true only if provided Rectangle collides the Sprite
      */
-    public collides = (r: Rectangle): boolean => {
-        return this.rect.collides(r);
+    public collides(r: Rectangle): boolean {
+        return this.shape.collides(r);
     }
 
-    /**
-     * Renders the sprite. Called each frame for each sprite, in the index order
-     * @param context Rendering context
-     */
     abstract render(context: CanvasRenderingContext2D): void;
 }
 
@@ -129,7 +194,7 @@ export abstract class Sprite {
 /**
  * [[Sprite]] implementation that manage a simple image
  */
-export class ImageSprite extends Sprite {
+export class ImageSprite extends RawSprite<Rectangle> {
 
     /** Managed image */
     protected spriteImage: HTMLImageElement;
@@ -146,7 +211,7 @@ export class ImageSprite extends Sprite {
         image: HTMLImageElement | HTMLCanvasElement,
         position: Point | Rectangle, index: number = 1) {
 
-        super(position, index);
+        super((position instanceof Point) ? new Rectangle(position.x, position.y) : position, index);
         this.setImage(image);
         this.rotation = 0;
     }
@@ -180,11 +245,11 @@ export class ImageSprite extends Sprite {
      * @returns underlying [[Rectangle]]. May be modified directly
      */
     public getRect = (): Rectangle => {
-        if (this.rect.width == 0 && this.spriteImage.complete) {
-            this.rect.resize(this.spriteImage.width, this.spriteImage.height);
+        if (this.shape.width == 0 && this.spriteImage.complete) {
+            this.shape.resize(this.spriteImage.width, this.spriteImage.height);
         }
 
-        return this.rect;
+        return this.shape;
     }
 
     /**
@@ -220,13 +285,13 @@ export class ImageSprite extends Sprite {
     public render(context: CanvasRenderingContext2D): void {
         if (this.spriteImage.complete) {
             if (this.rotation == 0) {
-                context.drawImage(this.spriteImage, this.rect.x, this.rect.y);
+                context.drawImage(this.spriteImage, this.shape.x, this.shape.y);
             } else {
                 context.save();
 
-                context.translate(this.rect.x + (this.rect.width >> 1), this.rect.y + (this.rect.height >> 1));
+                context.translate(this.shape.x + (this.shape.width >> 1), this.shape.y + (this.shape.height >> 1));
                 context.rotate(this.rotation);
-                context.drawImage(this.spriteImage, -this.rect.width >> 1, -this.rect.height >> 1);
+                context.drawImage(this.spriteImage, -this.shape.width >> 1, -this.shape.height >> 1);
 
                 context.restore();
             }
@@ -314,15 +379,15 @@ export class TiledSprite extends ImageSprite {
     public render(context: CanvasRenderingContext2D): void {
         if (this.spriteImage.complete) {
             // Find position of frame in source
-            let dx: number = this.rect.width * this.currentFrame;
-            let dy: number = this.rect.height * this.indexDirection;
+            let dx: number = this.shape.width * this.currentFrame;
+            let dy: number = this.shape.height * this.indexDirection;
 
             context.save();
 
             context.beginPath();
-            context.rect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
+            context.rect(this.shape.x, this.shape.y, this.shape.width, this.shape.height);
             context.clip();
-            context.drawImage(this.spriteImage, this.rect.x - dx, this.rect.y - dy);
+            context.drawImage(this.spriteImage, this.shape.x - dx, this.shape.y - dy);
             
             context.restore();
         }
@@ -332,7 +397,7 @@ export class TiledSprite extends ImageSprite {
 /**
  * Simple sprite wrapper for Text
  */
-export class TextSprite extends Sprite {
+export class TextSprite extends RawSprite<Rectangle> {
 
     /** Canvas used for off-screen rendering (double buffering) */
     private offCanvas: HTMLCanvasElement;
@@ -361,9 +426,9 @@ export class TextSprite extends Sprite {
      */
     public setText(text: string) {
         this.text = text;
-        this.offCtx.clearRect(0, 0, this.rect.width, this.rect.height);
+        this.offCtx.clearRect(0, 0, this.shape.width, this.shape.height);
         if (text == null) return;
-        new Text(text, new Point(10, 0), this.rect.width - 20, this.font, this.align).render(this.offCtx);
+        new Text(text, new Point(10, 0), this.shape.width - 20, this.font, this.align).render(this.offCtx);
     }
 
     /**
@@ -374,7 +439,7 @@ export class TextSprite extends Sprite {
     }
 
     public render(context: CanvasRenderingContext2D): void {
-        context.drawImage(this.offCanvas, this.rect.x, this.rect.y);
+        context.drawImage(this.offCanvas, this.shape.x, this.shape.y);
     }
 
 }

@@ -1,6 +1,6 @@
 {
   "name": "zepr.ts",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "A simple HTML5 rendering engine",
   "main": "dist/index",
   "typings": "dist/index",

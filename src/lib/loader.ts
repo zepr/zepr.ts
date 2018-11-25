@@ -9,7 +9,7 @@
 import { Engine } from './engine';
 import { GameScreen } from './screen';
 import { Sound } from './sound';
-import { Sprite } from './sprite';
+import { Sprite, RawSprite } from './sprite';
 import { Point, Rectangle } from './geometry';
 import { TextAlign, Font, Text } from './text';
 
@@ -222,7 +222,7 @@ export class DefaultLoaderScreen implements LoaderScreen {
 /**
  * A minimalist progress bar
  */
-export class ProgressBar extends Sprite {
+export class ProgressBar extends RawSprite<Rectangle> {
 
     /** Name of last loaded resource */
     private resource: string;
@@ -268,7 +268,7 @@ export class ProgressBar extends Sprite {
         if (this.withPercent && this.percent != newPercent) {
             this.percent = newPercent;
             this.percentText = new Text(
-                this.percent, new Point(0, this.rect.y - 100), this.rect.width, 
+                this.percent, new Point(0, this.shape.y - 100), this.shape.width, 
                 new Font('arial', 48, '#000000'), TextAlign.CENTER
             );
         }
@@ -293,15 +293,15 @@ export class ProgressBar extends Sprite {
     }
 
     render(context: CanvasRenderingContext2D): void {
-        context.drawImage(this.waitingCanvas, this.rect.x, this.rect.y);
-        let width: number = this.rect.width * this.progress;
+        context.drawImage(this.waitingCanvas, this.shape.x, this.shape.y);
+        let width: number = this.shape.width * this.progress;
         if (width > 0) {
             context.save();
 
             context.beginPath();
-            context.rect(this.rect.x, this.rect.y, width, this.rect.height);
+            context.rect(this.shape.x, this.shape.y, width, this.shape.height);
             context.clip();
-            context.drawImage(this.loadedCanvas, this.rect.x, this.rect.y);
+            context.drawImage(this.loadedCanvas, this.shape.x, this.shape.y);
             
             context.restore();
         }

@@ -40,6 +40,13 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 
 ## Changelog
 
+### 0.1.4 - 2018.11.25
+
+Refactoring of sprite
+- `Sprite` is now an interface
+- moved implementation to `RawSprite` abstract class
+- `Sprite` now use `Shape` rather than `Rectangle` 
+
 ### 0.1.3 - 2018.11.04
 
 - Refactoring of geometry, new functions for `Vector`

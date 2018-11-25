@@ -350,13 +350,79 @@ export class Vector {
 
 
 export interface Shape<T> {
+
+    x: number;
+    y: number;
+
+    /**
+     * Translates current Shape to relative coordinates
+     * @param newX Added to current abscissa
+     * @param newY Added to current ordinate
+     * 
+     * @returns Current Shape
+     */
     move(newX: number, newY: number): T;
-    move(vector: Vector): T;
+    /**
+     * Translates current Shape to relative coordinates
+     * @param vect Vector to add
+     * 
+     * @returns Current Shape
+     */
+    move(vect: Vector): T;
+
+    /**
+     * Translates current Shape to absolute coordinates
+     * @param newX New abscissa
+     * @param newY New ordinate
+     *
+     * @returns Current Shape
+     */
     moveTo(newX: number, newY: number): T;
+    /**
+     * Translates current Shape to absolute coordinates
+     * @param point New origin for Rectangle
+     *
+     * @returns Current Shape
+     */
     moveTo(point: Point): T;
+
+    /**
+     * Scales shape
+     * @param ratio Scale ratio
+     * 
+     * @returns Current Shape
+     */
     scale(ratio: number): T;
+
+    /**
+     * Clones current Shape
+     * 
+     * @returns A copy of current Shape
+     */
     clone(): T;
+
+    /**
+     * Checks if a point is within the bounds (inclusive) of a Shape
+     * @param p Point to check
+     * 
+     * @returns true only if Point is inside current Spahe
+     */
     contains(p: Point): boolean;
+    /**
+     * Checks if a point is within the bounds (inclusive) of a Shape
+     * @param coordX Abscissa to check
+     * @param coordY Ordinate to check
+     * 
+     * @returns true only if Point is inside current Spahe
+     */
+    contains(coordX: number, coordY: number): boolean;
+
+    /**
+     * Checks if current Shape collides with another one
+     * @param shape Shape to check
+     * 
+     * @returns true only if shapes collide
+     */
     collides(s: Shape<any>): boolean;
 }
 
@@ -518,8 +584,20 @@ export class Rectangle implements Shape<Rectangle> {
      * 
      * @returns true only if Point is inside current Rectangle
      */
-    public contains(p: Point): boolean {
-        return p.x >= this._x && p.x <= this._x + this._width && p.y >= this._y && p.y <= this._y + this._height;
+    public contains(p: Point): boolean;
+    public contains(coordX: number, coordY: number): boolean;
+    public contains(coordXOrPoint: number | Point, coordY?: number): boolean {
+        if (typeof(coordXOrPoint) === 'number') {
+            return coordXOrPoint >= this._x 
+                && coordXOrPoint <= this._x + this._width 
+                && coordY >= this._y 
+                && coordY <= this._y + this._height;
+        } else {
+            return coordXOrPoint.x >= this._x 
+                && coordXOrPoint.x <= this._x + this._width 
+                && coordXOrPoint.y >= this._y 
+                && coordXOrPoint.y <= this._y + this._height;
+        }
     }
 
     /**
@@ -689,8 +767,14 @@ export class Circle implements Shape<Circle> {
      * 
      * @returns true only if Point is inside current Circle
      */
-    public contains(p: Point): boolean {
-        return (p.x - this._x) * (p.x - this._x) + (p.y - this._y) * (p.y - this._y) <= this._radius * this._radius;
+    public contains(p: Point): boolean;
+    public contains(coordX: number, coordY: number): boolean;
+    public contains(coordXOrPoint: number | Point, coordY?: number): boolean {
+        if (typeof(coordXOrPoint) === 'number') {
+            return (coordXOrPoint - this._x) * (coordXOrPoint - this._x) + (coordY - this._y) * (coordY - this._y) <= this._radius * this._radius;
+        } else {
+            return (coordXOrPoint.x - this._x) * (coordXOrPoint.x - this._x) + (coordXOrPoint.y - this._y) * (coordXOrPoint.y - this._y) <= this._radius * this._radius;
+        }
     }
 
 

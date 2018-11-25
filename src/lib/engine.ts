@@ -58,7 +58,7 @@ export class Engine {
     /** Next screen */
     private nextScreen: GameScreen;
     /** Sprites defined in current screen */
-    private spriteList: Array<Sprite>;
+    private spriteList: Array<Sprite<any>>;
     /** Check for modification of Sprites list in current frame */
     private modifiedSpriteList: boolean;
 
@@ -202,7 +202,7 @@ export class Engine {
         }
 
         // Draw sprites
-        this.spriteList.forEach((sprite: Sprite): void => {
+        this.spriteList.forEach((sprite: Sprite<any>): void => {
             sprite.render(this.offCtx);
         });
 
@@ -255,7 +255,7 @@ export class Engine {
 
             // Sort sprites according to their index
             if (this.modifiedSpriteList) { // Only if something changed
-                this.spriteList.sort((first: Sprite, second: Sprite): number => {
+                this.spriteList.sort((first: Sprite<any>, second: Sprite<any>): number => {
                     return first.getIndex() - second.getIndex();
                 });
 
@@ -291,7 +291,7 @@ export class Engine {
         if (this.spriteList) {
             this.spriteList.length = 0;
         } else {
-            this.spriteList = new Array<Sprite>();
+            this.spriteList = new Array<Sprite<any>>();
         }
         this.modifiedSpriteList = true;
     
@@ -449,11 +449,11 @@ export class Engine {
             // Check if current screen supports mouse events
             if (uncasted.onClick !== undefined) {
                 let mouseScreen: ClickListener = <ClickListener>uncasted;
-                let clickedSprites: Array<Sprite> = null;
+                let clickedSprites: Array<Sprite<any>> = null;
 
                 if (this.clickedSpritesEnabled) {
-                    clickedSprites = new Array<Sprite>();
-                    this.spriteList.forEach((sprite: Sprite): void => {
+                    clickedSprites = new Array<Sprite<any>>();
+                    this.spriteList.forEach((sprite: Sprite<any>): void => {
                         if (sprite.contains(this.mouseEvent)) {
                             clickedSprites.push(sprite);
                         }
@@ -753,7 +753,7 @@ export class Engine {
      * 
      * @returns true if the Sprite is added (false if already present)
      */
-    public addSprite = (sprite: Sprite): boolean => {
+    public addSprite = (sprite: Sprite<any>): boolean => {
         let index: number = this.spriteList.indexOf(sprite);
 
         if (index == -1) {
@@ -772,7 +772,7 @@ export class Engine {
      * 
      * @returns true if the sprite is really removed (false if not present)
      */
-    public removeSprite = (sprite: Sprite): boolean => {
+    public removeSprite = (sprite: Sprite<any>): boolean => {
         let index: number = this.spriteList.indexOf(sprite);
 
         if (index >= 0) {
