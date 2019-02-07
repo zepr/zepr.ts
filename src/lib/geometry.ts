@@ -105,13 +105,30 @@ export class Point {
  * Represents a 2D Vector
  */
 export class Vector {
-    
+
+    _x: number;
+    _y: number;
+
     /** Ratio between Radians and degrees */
     public static readonly RAD_TO_DEGREES: number = 180 / Math.PI;
 
-    constructor(private _x: number = 0.0, private _y: number = 0.0) {
+    constructor();
+    constructor(x: number, y: number);
+    constructor(startPoint: Point, endPoint: Point);
+    constructor(xCoordOrStartPoint?: number | Point, yCoordOrEndPoint?: number | Point) {
+
+        if (xCoordOrStartPoint == null) {
+            this._x = 0;
+            this._y = 0;
+        } else if (typeof(xCoordOrStartPoint) === 'number') {
+            this._x = xCoordOrStartPoint;
+            this._y = <number>yCoordOrEndPoint;
+        } else {
+            this._x = (<Point>yCoordOrEndPoint).x - xCoordOrStartPoint.x;
+            this._y = (<Point>yCoordOrEndPoint).y - xCoordOrStartPoint.y;
+        }
     }
- 
+
     /** Length of Vector on X-Axis */
     get x(): number {
         return this._x;
@@ -328,6 +345,17 @@ export class Vector {
         return res;
     }
 
+
+    /**
+     * Returns a normal Vector
+     * 
+     * @returns A new orthogonal Vector
+     */
+    public getNormal(): Vector {
+        return new Vector(-this._y, this.x);
+    }
+
+
     /**
      * Returns the dot product of vectors
      * @param v Second vector
@@ -337,6 +365,32 @@ export class Vector {
     public getDotProduct(v: Vector): number {
         return this._x * v.x + this._y * v.y;
     }
+
+    /**
+     * Returns the orthogonal projection on provided vector
+     * @param v Projection Vector. Resulting Vector is collinear to this one
+     */
+    public getProjection(v: Vector): Vector {
+
+        if (v.x == 0) {
+            return new Vector(0, this._y);
+        }
+
+        if (v.y == 0) {
+            return new Vector(this._x, 0);
+        }
+
+        let dotProduct: number = this.getDotProduct(v);
+        if (dotProduct == 0) {
+            // Orthogonal vectors
+            return new Vector(0, 0);
+        }
+
+        let coeff: number = dotProduct / (v.x * v.x + v.y * v.y);
+        
+        return new Vector(coeff * v.x, coeff * v.y);
+    }
+
 
     /**
      * Clones current Vector
@@ -353,6 +407,8 @@ export interface Shape<T> {
 
     x: number;
     y: number;
+    /** Rotation of Shape in radians */
+    angle: number;
 
     /**
      * Translates current Shape to relative coordinates
@@ -395,6 +451,24 @@ export interface Shape<T> {
     scale(ratio: number): T;
 
     /**
+     * Rotates shape
+     * @param angle new angle for shape in degrees
+     * 
+     * @returns Current Shape
+     */
+    rotate(angle: number): T;
+
+
+    /**
+     * Rotates shape
+     * @param angle new angle for shape in radians
+     * 
+     * @returns Current Shape
+     */
+    rotateRad(angle: number): T;
+
+
+    /**
      * Clones current Shape
      * 
      * @returns A copy of current Shape
@@ -431,23 +505,47 @@ export interface Shape<T> {
  * Represents a Rectangle
  */
 export class Rectangle implements Shape<Rectangle> {
+
+    protected halfWidth: number;
+    protected halfHeight: number;
+
+
     /**
      * Creates a new Rectangle
-     * @param _x Abscissa of upper-left corner
-     * @param _y Ordinate of upper-left corner
+     * @param _x Abscissa of center
+     * @param _y Ordinate of center
      * @param _width width of Rectangle
      * @param _height height of Rectangle
+     * @param _angle rotation
      */
     constructor(private _x: number = 0, private _y: number = 0, 
-        private _width: number = 0, private _height: number = 0) {
+        private _width: number = 0, private _height: number = 0, 
+        private _angle: number = 0) {
+
+        this.halfWidth = _width / 2;
+        this.halfHeight = _height / 2;
     }
  
-    /** Abscissa of upper-left corner of the rectangle */
+    /**
+     * Helper method to create a rectangle from its upper-left corner
+     * @param x Abscissa of upper-left corner
+     * @param y Ordinate of upper-left corner
+     * @param width width of Rectangle
+     * @param height height of Rectangle
+     * 
+     * @returns Corresponding Rectangle
+     */
+    static asRect(x: number, y: number, width: number, height): Rectangle {
+        return new Rectangle(x + width / 2, y + height / 2, width, height);
+    }
+
+
+    /** Abscissa of the center of the rectangle */
     get x(): number {
         return this._x;
     }
 
-    /** Ordinate of upper-left corner of the rectangle */
+    /** Ordinate of the center of the rectangle */
     get y(): number {
         return this._y;
     }
@@ -460,6 +558,10 @@ export class Rectangle implements Shape<Rectangle> {
     /** Height of rectangle */
     get height(): number {
         return this._height;
+    }
+
+    get angle(): number {
+        return this._angle;
     }
 
     /**
@@ -527,29 +629,55 @@ export class Rectangle implements Shape<Rectangle> {
         this._width = newWidth;
         this._height = newHeight;
 
+        this.halfWidth = newWidth / 2;
+        this.halfHeight = newHeight / 2;
+
         return this;
     }
 
     /**
      * Scales rectangle
      * @param ratio Scale ratio
-     * @param centered If the scale operation is applied to the center of the rectangle
      * 
      * @returns Current Rectangle
      */
-    public scale(ratio: number, centered: boolean = false): Rectangle {
+    public scale(ratio: number): Rectangle {
 
         let newWidth: number = this._width * ratio;
         let newHeight: number = this._height * ratio;
-        if (centered) {
-            this._x -= (newWidth - this._width) / 2;
-            this._y -= (newHeight - this._height) / 2;
-        }
+
         this._width = newWidth;
-        this._height *= newHeight;
+        this._height = newHeight;
+
+        this.halfWidth = newWidth / 2;
+        this.halfHeight = newHeight / 2;
 
         return this;
     }
+
+
+    /**
+     * Rotates Rectangle
+     * @param angle New rotation in degrees
+     * 
+     * @returns Current Rectangle
+     */
+    public rotate(angle: number): Rectangle {
+        this._angle = angle * Math.PI / 180;
+        return this;
+    }
+
+    /**
+     * Rotates Rectangle
+     * @param angle New rotation in radians
+     * 
+     * @returns Current Rectangle
+     */
+    public rotateRad(angle: number): Rectangle {
+        this._angle = angle;
+        return this;
+    }
+
 
     /**
      * Resets Rectangle dimensions
@@ -557,14 +685,19 @@ export class Rectangle implements Shape<Rectangle> {
      * @param newY New ordinate
      * @param newWidth New width
      * @param newHeight New height
+     * @param newAngle New rotation
      * 
      * @returns Current Rectangle
      */
-    public reset(newX: number, newY: number, newWidth: number, newHeight: number): Rectangle {
+    public reset(newX: number, newY: number, newWidth: number, newHeight: number, newAngle: number = 0): Rectangle {
         this._x = newX;
         this._y = newY;
         this._width = newWidth;
         this._height = newHeight;
+        this._angle = newAngle;
+
+        this.halfWidth = newWidth / 2;
+        this.halfHeight = newHeight / 2;
 
         return this;
     }
@@ -575,7 +708,7 @@ export class Rectangle implements Shape<Rectangle> {
      * @returns A copy of current Rectangle
      */
     public clone(): Rectangle {
-        return new Rectangle(this._x, this._y, this._width, this.height);
+        return new Rectangle(this._x, this._y, this._width, this.height, this._angle);
     }
 
     /**
@@ -587,17 +720,27 @@ export class Rectangle implements Shape<Rectangle> {
     public contains(p: Point): boolean;
     public contains(coordX: number, coordY: number): boolean;
     public contains(coordXOrPoint: number | Point, coordY?: number): boolean {
+
+        let x: number, y: number;
         if (typeof(coordXOrPoint) === 'number') {
-            return coordXOrPoint >= this._x 
-                && coordXOrPoint <= this._x + this._width 
-                && coordY >= this._y 
-                && coordY <= this._y + this._height;
+            x = coordXOrPoint;
+            y = coordY;
         } else {
-            return coordXOrPoint.x >= this._x 
-                && coordXOrPoint.x <= this._x + this._width 
-                && coordXOrPoint.y >= this._y 
-                && coordXOrPoint.y <= this._y + this._height;
+            x = coordXOrPoint.x;
+            y = coordXOrPoint.y;
         }
+
+        x -= this.x;
+        y -= this.y;
+
+        if (this.angle != 0) {
+            // Rotation
+            let v: Vector = new Vector(x, y).rotateRad(-this.angle);
+            x = v.x;
+            y = v.y;
+        }
+
+        return Math.abs(x) <= this.halfWidth && Math.abs(y) <= this.halfHeight;
     }
 
     /**
@@ -609,34 +752,101 @@ export class Rectangle implements Shape<Rectangle> {
     public collides(shape: Shape<any>): boolean {
 
         if (shape instanceof Rectangle) {
-            let r: Rectangle = <Rectangle>shape;
+            // Get vertices
+            let vert1: Array<Point> = this.getVertices();
+            let vert2: Array<Point> = shape.getVertices();
 
-            return this.x < r.x + r.width 
-                && this.x + this.width > r.x 
-                && this.y < r.y + r.height 
-                && this.y + this.height > r.y;
+            let sideNormal: Vector;
+            let ref: number;
+            let foundSepAxis: boolean;
+
+            // Check first Rectangle
+            for (let i = 0; i < 4; i++) {
+                sideNormal = new Vector(vert1[i], vert1[(i + 1) % 4]).getNormal();
+                ref = (sideNormal.x * (vert1[(i + 2) % 4].x - vert1[i].x) + sideNormal.y * (vert1[(i + 1) % 4].y - vert1[i].y)) > 0 ? 1 : -1;
+
+                for (let j = 0; j < 4; j++) {
+                    foundSepAxis = true;
+                    if (ref == ((sideNormal.x * (vert2[j].x - vert1[i].x) + sideNormal.y * (vert2[j].y - vert1[i].y)) > 0 ? 1 : -1)) {
+                        foundSepAxis = false;
+                        break;
+                    }
+                }
+                if (foundSepAxis) return false;
+            }
+            // Check second Rectangle
+            for (let i = 0; i < 4; i++) {
+                sideNormal = new Vector(vert2[i], vert2[(i + 1) % 4]).getNormal();
+                ref = (sideNormal.x * (vert2[(i + 2) % 4].x - vert2[i].x) + sideNormal.y * (vert2[(i + 1) % 4].y - vert2[i].y)) > 0 ? 1 : -1;
+
+                for (let j = 0; j < 4; j++) {
+                    foundSepAxis = true;
+                    if (ref == ((sideNormal.x * (vert1[j].x - vert2[i].x) + sideNormal.y * (vert1[j].y - vert2[i].y)) > 0 ? 1 : -1)) {
+                        foundSepAxis = false;
+                        break;
+                    }
+                }
+
+                if (foundSepAxis) return false;
+            }
+
+            // No separating axis found => Rectangles collision
+            return true;
+
         } else if (shape instanceof Circle) {
             let c: Circle = <Circle>shape;
 
-            let rcx: number = this.x + (this.width >> 1); // x coord of center of rect
-            let rcy: number = this.y + (this.height >> 1); // y coord of center of rect
+            let x: number = c.x - this.x;
+            let y: number = c.y - this.y;
 
-            let dx = Math.abs(c.x - rcx); // Delta x between rectangle and circle
-            let dy = Math.abs(c.y - rcy); // Delta y between rectangle and circle
+            if (this.angle != 0) {
+                // Rotation
+                let v: Vector = new Vector(x, y).rotateRad(-this.angle);
+                x = v.x;
+                y = v.y;
+            }
+
+            x = Math.abs(x);
+            y = Math.abs(y);
 
             // Check trivial cases
-            if (dx > (this.width >> 1) + c.radius) return false;
-            if (dy > (this.height >> 1) + c.radius) return false;
-            if (dx <= (this.width >> 1)) return true;
-            if (dy <= (this.height >> 1)) return true;
+            if (x > this.halfWidth + c.radius) return false;
+            if (y > this.halfHeight + c.radius) return false;
+            if (x <= this.halfWidth) return true;
+            if (y <= this.halfHeight) return true;
 
             // Check corner
-            return (dx - (this.width >> 1)) * (dx - (this.width >> 1)) + (dy - (this.height >> 1)) * (dx - (this.height >> 1)) <= c.radius * c.radius;
+            return (x - this.halfWidth) * (x - this.halfWidth) + (y - this.halfHeight) * (y - this.halfHeight) <= c.radius * c.radius;
         } else {
             // Call other side (Same as previous case with Rectangle)
             // Non trivial shapes implementations should take care of loops
             return shape.collides(this);
         }
+    }
+
+
+    /**
+     * lists vertices of the rectangle
+     * 
+     * @Returns Vertices of the Rectangle, two adjacents vertices in the array form an edge of the Rectangle
+     */
+    public getVertices(): Array<Point> {
+        let vertices: Array<Point> = new Array<Point>();
+
+        let cos: number = Math.cos(this._angle);
+        let sin: number = Math.sin(this._angle);
+
+        let x1: number = this.halfWidth * cos - this.halfHeight * sin;
+        let y1: number = this.halfWidth * sin + this.halfHeight * cos;
+        let x2: number = this.halfWidth * cos + this.halfHeight * sin;
+        let y2: number = this.halfWidth * sin - this.halfHeight * cos;
+
+        vertices.push(new Point(x1 + this._x, y1 + this._y));
+        vertices.push(new Point(x2 + this._x, y2 + this._y));
+        vertices.push(new Point(this._x - x1, this._y - y1));
+        vertices.push(new Point(this._x - x2, this._y - y2));
+
+        return vertices;
     }
 }
 
@@ -647,8 +857,10 @@ export class Circle implements Shape<Circle> {
      * @param _x Abscissa of center
      * @param _y Ordinate of center
      * @param _radius Radius of circle
+     * @param _angle Rotation
      */
-    constructor(private _x: number = 0, private _y: number = 0, private _radius: number = 0) {
+    constructor(private _x: number = 0, private _y: number = 0, 
+        private _radius: number = 0, private _angle = 0) {
     }
 
     /** Abscissa of center */
@@ -666,6 +878,9 @@ export class Circle implements Shape<Circle> {
         return this._radius;
     }
 
+    get angle(): number {
+        return this._angle;
+    }
 
     /**
      * Translates current Circle to relative coordinates
@@ -734,16 +949,40 @@ export class Circle implements Shape<Circle> {
         return this;
     }
 
+    /**
+     * Rotates Circle
+     * @param angle New rotation in degrees
+     * 
+     * @returns Current Circle
+     */
+    public rotate(angle: number): Circle {
+        this._angle = angle * Math.PI / 180;
+        return this;
+    }
+
+    /**
+     * Rotates Circle
+     * @param angle New rotation in radians
+     * 
+     * @returns Current Circle
+     */
+    public rotateRad(angle: number): Circle {
+        this._angle = angle;
+        return this;
+    }
+
+
 
     /**
      * Resets Circle dimensions
      * @param newX New abscissa of center
      * @param newY New ordinate of center
      * @param newWidth New radius
+     * @param newAngle New rotation
      * 
      * @returns Current Circle
      */
-    public reset(newX: number, newY: number, newRadius: number): Circle {
+    public reset(newX: number, newY: number, newRadius: number, newAngle: number = 0): Circle {
         this._x = newX;
         this._y = newY;
         this._radius = newRadius;
@@ -757,7 +996,7 @@ export class Circle implements Shape<Circle> {
      * @returns A copy of current Circle
      */
     public clone(): Circle {
-        return new Circle(this._x, this._y, this._radius);
+        return new Circle(this._x, this._y, this._radius, this._angle);
     }
 
 

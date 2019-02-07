@@ -106,6 +106,9 @@ export class Engine {
     /** If overflow is horizontal */
     private horizontalOverflow: boolean;
 
+    /** Last render time */
+    private lastTime: number;
+
     /**
      * Defines an Engine. The scene is always maximized and centered on screen with preservation of its aspect ratio (Adds borders when needed)
      * @param _width Scene width
@@ -216,8 +219,9 @@ export class Engine {
      * - Evaluates captured events 
      * - Executes current [[GameScreen]] run method
      * - Renders sprites for next frame
+     * @param time Delai d'appel
      */
-    protected run = (): void => {
+    protected run = (time: number): void => {
         this.repaint();
 
         // Check for screen switch
@@ -251,7 +255,8 @@ export class Engine {
 
         if (this.screen) {
             this.manageMouseEvents();
-            this.screen.run(this);            
+            this.screen.run(this, this.lastTime ? time - this.lastTime : time);
+            this.lastTime = time;
 
             // Sort sprites according to their index
             if (this.modifiedSpriteList) { // Only if something changed

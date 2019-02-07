@@ -1,4 +1,4 @@
-# zepr.ts v0.1.3
+# zepr.ts v0.2.0
 
 A simple HTML5 rendering engine
 
@@ -40,9 +40,18 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 
 ## Changelog
 
+### 0.2.0 - 2019.02.07
+
+Major refactoring. The goal is to simplify integration of the [p2.js](https://github.com/schteppe/p2.js) 2D physics engine
+- New geometric functions (Mostly on `Vector` and `Rectangle`)
+- `Shape` implementations can now rotate, with updated collision detection between shapes
+- `Rectangle` is centered. The static method `Rectangle.asRect()` was added to create a `Rectangle` with its upper-left vertice coords (as in Zepr 0.1.x)
+- All implementations of `Sprite` were updated accordingly. Collisions with rotated `ImageSprite` are now properly managed 
+- BugFix Coordinates were mistakenly rounded (Misuse of bit shift operations)
+
 ### 0.1.5 - 2018.11.25
 
-
+- BugFix Forgotten loader
 
 ### 0.1.4 - 2018.11.25
 

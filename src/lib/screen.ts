@@ -29,8 +29,9 @@ export interface GameScreen {
     /** 
      * Main method. Called on each frame
      * @param engine A reference to the active engine
+     * @param deltaTime Delai depuis le dernier appel
      */
-    run(engine: Engine): void;
+    run(engine: Engine, deltaTime?: number): void;
 }
 
 /**

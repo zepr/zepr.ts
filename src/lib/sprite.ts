@@ -199,9 +199,6 @@ export class ImageSprite extends RawSprite<Rectangle> {
     /** Managed image */
     protected spriteImage: HTMLImageElement;
 
-    /** Angle of rotation (rad) */
-    protected rotation: number;
-
     /**
      * @param image Reference to managed image. May be an image or a canvas
      * @param position Position of the sprite
@@ -209,11 +206,10 @@ export class ImageSprite extends RawSprite<Rectangle> {
      */
     public constructor(
         image: HTMLImageElement | HTMLCanvasElement,
-        position: Point | Rectangle, index: number = 1) {
+        position: Rectangle, index: number = 1) {
 
-        super((position instanceof Point) ? new Rectangle(position.x, position.y) : position, index);
+        super(position, index);
         this.setImage(image);
-        this.rotation = 0;
     }
 
     /**
@@ -245,10 +241,6 @@ export class ImageSprite extends RawSprite<Rectangle> {
      * @returns underlying [[Rectangle]]. May be modified directly
      */
     public getRect = (): Rectangle => {
-        if (this.shape.width == 0 && this.spriteImage.complete) {
-            this.shape.resize(this.spriteImage.width, this.spriteImage.height);
-        }
-
         return this.shape;
     }
 
@@ -257,7 +249,7 @@ export class ImageSprite extends RawSprite<Rectangle> {
      * @param degrees Rotation angle in degrees (from original image)
      */
     public setRotation(degrees: number): void {
-        this.rotation = degrees * Math.PI / 180;
+        this.shape.rotate(degrees);
     }
 
     /**
@@ -265,7 +257,7 @@ export class ImageSprite extends RawSprite<Rectangle> {
      * @param degrees Rotation angle in degrees (delta)
      */
     public addRotation(degrees: number): void {
-        this.rotation += degrees * Math.PI / 180;
+        this.shape.rotateRad(this.shape.angle + degrees * Math.PI / 180);
     }
 
     /**
@@ -274,7 +266,7 @@ export class ImageSprite extends RawSprite<Rectangle> {
      * @returns rotation angle in degrees
      */
     public getRotation(): number {
-        return this.rotation * 180 / Math.PI;
+        return this.shape.angle * 180 / Math.PI;
     }
 
 
@@ -284,15 +276,13 @@ export class ImageSprite extends RawSprite<Rectangle> {
      */
     public render(context: CanvasRenderingContext2D): void {
         if (this.spriteImage.complete) {
-            if (this.rotation == 0) {
-                context.drawImage(this.spriteImage, this.shape.x, this.shape.y);
+            if (this.shape.angle == 0) {
+                context.drawImage(this.spriteImage, this.shape.x - this.shape.width / 2, this.shape.y - this.shape.height / 2);
             } else {
                 context.save();
-
-                context.translate(this.shape.x + (this.shape.width >> 1), this.shape.y + (this.shape.height >> 1));
-                context.rotate(this.rotation);
-                context.drawImage(this.spriteImage, -this.shape.width >> 1, -this.shape.height >> 1);
-
+                context.translate(this.shape.x, this.shape.y);
+                context.rotate(this.shape.angle);
+                context.drawImage(this.spriteImage, -this.shape.width / 2, -this.shape.height / 2);
                 context.restore();
             }
         }
@@ -378,17 +368,22 @@ export class TiledSprite extends ImageSprite {
      */
     public render(context: CanvasRenderingContext2D): void {
         if (this.spriteImage.complete) {
-            // Find position of frame in source
-            let dx: number = this.shape.width * this.currentFrame;
-            let dy: number = this.shape.height * this.indexDirection;
+            let halfWidth: number = this.shape.width / 2;
+            let halfHeight: number = this.shape.height / 2;
+
+            let dx: number = -this.shape.width * this.currentFrame;
+            let dy: number = -this.shape.height * this.indexDirection;
 
             context.save();
+            context.translate(this.shape.x, this.shape.y);
+            context.rotate(this.shape.angle);
 
             context.beginPath();
-            context.rect(this.shape.x, this.shape.y, this.shape.width, this.shape.height);
+            context.fillStyle = 'red';
+            context.rect(-halfWidth, -halfHeight, this.shape.width, this.shape.height);
             context.clip();
-            context.drawImage(this.spriteImage, this.shape.x - dx, this.shape.y - dy);
-            
+
+            context.drawImage(this.spriteImage, dx - halfWidth, dy - halfHeight);
             context.restore();
         }
     }    
@@ -438,9 +433,42 @@ export class TextSprite extends RawSprite<Rectangle> {
         return this.text;
     }
 
-    public render(context: CanvasRenderingContext2D): void {
-        context.drawImage(this.offCanvas, this.shape.x, this.shape.y);
+    /**
+     * Set new rotation angle 
+     * @param degrees Rotation angle in degrees (from original image)
+     */
+    public setRotation(degrees: number): void {
+        this.shape.rotate(degrees);
     }
 
+    /**
+     * Adds angle to current rotation
+     * @param degrees Rotation angle in degrees (delta)
+     */
+    public addRotation(degrees: number): void {
+        this.shape.rotateRad(this.shape.angle + degrees * Math.PI / 180);
+    }
+
+    /**
+     * Get current rotation angle
+     * 
+     * @returns rotation angle in degrees
+     */
+    public getRotation(): number {
+        return this.shape.angle * 180 / Math.PI;
+    }
+
+
+    public render(context: CanvasRenderingContext2D): void {
+        if (this.shape.angle == 0) {
+            context.drawImage(this.offCanvas, this.shape.x - this.shape.width / 2, this.shape.y - this.shape.height / 2);
+        } else {
+            context.save();
+            context.translate(this.shape.x, this.shape.y);
+            context.rotate(this.shape.angle);
+            context.drawImage(this.offCanvas, -this.shape.width / 2, -this.shape.height / 2);
+            context.restore();
+        }
+    }
 }
 
