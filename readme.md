@@ -40,6 +40,13 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 
 ## Changelog
 
+### 0.2.1 - 2019.02.08
+
+Refactoring of `ImageSprite`
+- View centered on image rather than on underlying shape (In order to use other shapes than `Rectangle`)
+- Added `Circle` as a possible underlying shape
+- removed useless `getRect()` method (same usage as inherited `getShape()` method)
+
 ### 0.2.0 - 2019.02.07
 
 Major refactoring. The goal is to simplify integration of the [p2.js](https://github.com/schteppe/p2.js) 2D physics engine

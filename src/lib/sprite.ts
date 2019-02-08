@@ -5,7 +5,7 @@
 /**
  * 
  */
-import { Point, Rectangle, Vector, Shape } from './geometry';
+import { Point, Rectangle, Vector, Shape, Circle } from './geometry';
 import { Text, TextAlign, Font } from './text'
 
 /**
@@ -194,7 +194,7 @@ export abstract class RawSprite<T extends Shape<T>> implements Sprite<T> {
 /**
  * [[Sprite]] implementation that manage a simple image
  */
-export class ImageSprite extends RawSprite<Rectangle> {
+export class ImageSprite extends RawSprite<Circle | Rectangle> {
 
     /** Managed image */
     protected spriteImage: HTMLImageElement;
@@ -206,7 +206,7 @@ export class ImageSprite extends RawSprite<Rectangle> {
      */
     public constructor(
         image: HTMLImageElement | HTMLCanvasElement,
-        position: Rectangle, index: number = 1) {
+        position: Circle | Rectangle, index: number = 1) {
 
         super(position, index);
         this.setImage(image);
@@ -233,15 +233,6 @@ export class ImageSprite extends RawSprite<Rectangle> {
      */
     public getImage = (): HTMLImageElement => {
         return this.spriteImage;
-    }
-
-    /**
-     * Gets reference to sprite Rectangle
-     * 
-     * @returns underlying [[Rectangle]]. May be modified directly
-     */
-    public getRect = (): Rectangle => {
-        return this.shape;
     }
 
     /**
@@ -277,12 +268,12 @@ export class ImageSprite extends RawSprite<Rectangle> {
     public render(context: CanvasRenderingContext2D): void {
         if (this.spriteImage.complete) {
             if (this.shape.angle == 0) {
-                context.drawImage(this.spriteImage, this.shape.x - this.shape.width / 2, this.shape.y - this.shape.height / 2);
+                context.drawImage(this.spriteImage, this.shape.x - this.spriteImage.width / 2, this.shape.y - this.spriteImage.height / 2);
             } else {
                 context.save();
                 context.translate(this.shape.x, this.shape.y);
                 context.rotate(this.shape.angle);
-                context.drawImage(this.spriteImage, -this.shape.width / 2, -this.shape.height / 2);
+                context.drawImage(this.spriteImage, -this.spriteImage.width / 2, -this.spriteImage.height / 2);
                 context.restore();
             }
         }
@@ -301,18 +292,18 @@ export class TiledSprite extends ImageSprite {
 
     /**
      * @param image Tiled image. All frames must have the same size
-     * @param frames Number of frames for each direction
+     * @param frameCount Number of frames for each direction
      * @param directions The list of available directions, vertically aligned from top to bottom
-     * @param position A rectangle representing both the position of the Sprite and the dimension of a frame
+     * @param frame A rectangle representing both the position of the Sprite and the dimension of a frame
      * @param index Order for sprite rendering 
      */
     public constructor(
         image: HTMLImageElement | HTMLCanvasElement,
-        protected frames: number,
+        protected frameCount: number,
         protected directions: Array<Direction>,
-        position: Rectangle, index: number = 1) {
+        frame: Rectangle, index: number = 1) {
         
-        super(image, position);
+        super(image, frame);
     }
 
     /**
@@ -359,7 +350,7 @@ export class TiledSprite extends ImageSprite {
      * Cycles to next frame
      */
     public nextFrame = (): void => {
-        this.currentFrame = (this.currentFrame + 1) % this.frames;        
+        this.currentFrame = (this.currentFrame + 1) % this.frameCount;        
     }
 
     /**
@@ -368,11 +359,11 @@ export class TiledSprite extends ImageSprite {
      */
     public render(context: CanvasRenderingContext2D): void {
         if (this.spriteImage.complete) {
-            let halfWidth: number = this.shape.width / 2;
-            let halfHeight: number = this.shape.height / 2;
+            let halfWidth: number = (<Rectangle>this.shape).width / 2;
+            let halfHeight: number = (<Rectangle>this.shape).height / 2;
 
-            let dx: number = -this.shape.width * this.currentFrame;
-            let dy: number = -this.shape.height * this.indexDirection;
+            let dx: number = -(<Rectangle>this.shape).width * this.currentFrame;
+            let dy: number = -(<Rectangle>this.shape).height * this.indexDirection;
 
             context.save();
             context.translate(this.shape.x, this.shape.y);
@@ -380,7 +371,7 @@ export class TiledSprite extends ImageSprite {
 
             context.beginPath();
             context.fillStyle = 'red';
-            context.rect(-halfWidth, -halfHeight, this.shape.width, this.shape.height);
+            context.rect(-halfWidth, -halfHeight, (<Rectangle>this.shape).width, (<Rectangle>this.shape).height);
             context.clip();
 
             context.drawImage(this.spriteImage, dx - halfWidth, dy - halfHeight);
