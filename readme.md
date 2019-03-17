@@ -1,4 +1,4 @@
-# zepr.ts v0.2.0
+# zepr.ts v0.2.2
 
 A simple HTML5 rendering engine
 
@@ -39,6 +39,10 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 ```
 
 ## Changelog
+
+### 0.2.2 - 2019.03.17
+
+- BugFix Ignore unparsable json answer in `Zepr.Net`
 
 ### 0.2.1 - 2019.02.08
 

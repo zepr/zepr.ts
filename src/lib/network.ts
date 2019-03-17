@@ -21,7 +21,15 @@ export class Net {
         xhr.open('GET', url);
         xhr.onreadystatechange = () => {
             if (xhr.readyState == XMLHttpRequest.DONE && xhr.responseText != 'undefined' ) {
-                callback(JSON.parse(xhr.responseText));
+                let json: any;
+                try {
+                    json = JSON.parse(xhr.responseText);
+                } catch(e) {
+                }
+                
+                if (json != null) {
+                    callback(json);
+                }
             }
         };
         xhr.send();
@@ -39,7 +47,15 @@ export class Net {
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onreadystatechange = () => {
             if (xhr.readyState == XMLHttpRequest.DONE && xhr.responseText != 'undefined' ) {
-                callback(JSON.parse(xhr.responseText));
+                let json: any;
+                try {
+                    json = JSON.parse(xhr.responseText);
+                } catch(e) {
+                }
+                
+                if (json != null) {
+                    callback(json);
+                }
             }
         };
         xhr.send(JSON.stringify(content));
