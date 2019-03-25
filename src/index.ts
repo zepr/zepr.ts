@@ -11,7 +11,7 @@
 /**
  * 
  */
-export { Engine } from './lib/engine'
+export { Background, Engine } from './lib/engine'
 export { ResourcesLoader, LoaderStats, LoaderScreen, DefaultLoaderScreen, ProgressBar } from './lib/loader'
 export { GameScreen, ClickListener, DragListener, ZoomListener } from './lib/screen'
 export { Direction, Sprite, RawSprite, ImageSprite, TiledSprite, TextSprite } from './lib/sprite'

@@ -1,4 +1,4 @@
-# zepr.ts v0.2.2
+# zepr.ts v0.2.3
 
 A simple HTML5 rendering engine
 
@@ -39,6 +39,10 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 ```
 
 ## Changelog
+
+### 0.2.3 - 2019.03.25
+
+- Improvement for background image position
 
 ### 0.2.2 - 2019.03.17
 

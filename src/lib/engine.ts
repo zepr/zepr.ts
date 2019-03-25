@@ -12,6 +12,17 @@ import { GameScreen, ClickListener, ZoomListener, DragListener } from './screen'
 import { Sprite } from './sprite';
 import { ResourcesLoader, LoaderScreen, DefaultLoaderScreen } from './loader';
 
+
+
+
+export enum Background {
+    TOP_LEFT,
+    CENTERED,
+    OVERFLOW
+};    
+
+
+
 /**
  * A simple state transition class
  */
@@ -47,8 +58,13 @@ export class Engine {
     private background: HTMLImageElement | HTMLCanvasElement;
     /** Alternative background color if no image background is set */
     private backgroundColor: string;
+    /** How background image should be displayed */
+    private backgroundType: number;
     /** Background position */
     private backgroundPosition: Point;
+
+    /** Scene scale in user view */
+    private scale: number;
 
     /** Object cache */
     private cache: Map<string, any>;
@@ -167,21 +183,20 @@ export class Engine {
 		this.canvas.height = window.innerHeight;
 
         const newRatio: number = this.canvas.width / this.canvas.height;
-        let scale: number;        
 
         if ((newRatio > ratio) != this.overflow) {
             let realWidth: number = this.canvas.height * ratio;
             this.coords.moveTo((this.canvas.width - realWidth) / 2, 0);
-            scale = this.canvas.height / this._height;
+            this.scale = this.canvas.height / this._height;
             this.horizontalOverflow = true;
         } else {
             let realHeight: number = this.canvas.width / ratio;
             this.coords.moveTo(0, (this.canvas.height - realHeight) / 2);
-            scale = this.canvas.width / this._width;
+            this.scale = this.canvas.width / this._width;
             this.horizontalOverflow = false;
         }
 
-        this.coords.resize(this._width * scale, this._height * scale);
+        this.coords.resize(this._width * this.scale, this._height * this.scale);
 
         // Set center position when set in overflow
         if (this.overflow && this.overflowCenter != null) {
@@ -208,6 +223,15 @@ export class Engine {
         this.spriteList.forEach((sprite: Sprite<any>): void => {
             sprite.render(this.offCtx);
         });
+
+        // Manage background overflow
+        if (this.background && this.backgroundType == Background.OVERFLOW) {
+            let backWidth: number = this.background.width * this.scale;
+            let backHeight: number = this.background.height * this.scale;
+            this.ctx.drawImage(this.background, 
+                (window.innerWidth - backWidth) / 2, (window.innerHeight - backHeight) / 2, 
+                backWidth, backHeight);
+        }
 
         // Paint off-screen canvas on visible canvas
         this.ctx.drawImage(this.offCanvas, this.coords.x, this.coords.y, this.coords.width, this.coords.height);
@@ -793,8 +817,10 @@ export class Engine {
     /**
      * Defines current background image. The image is not distorted to fit the screen. 
      * @param bgImage The new background image. May be either an image, its relative or absolute url or a canvas
+     * @param backgroundType How background should be displayed
      */
-    public setBackground = (bgImage: HTMLImageElement | HTMLCanvasElement | string, centered: boolean = false): void => {
+    public setBackground = (bgImage: HTMLImageElement | HTMLCanvasElement | string, backgroundType: number = Background.TOP_LEFT): void => {
+
         if (bgImage == null) {
             // Removes background
             this.background = null;
@@ -806,7 +832,9 @@ export class Engine {
             this.background = this.getImage(bgImage);
         }
 
-        if (centered && this.background && this.background.width > 0 ) {
+        this.backgroundType = backgroundType;
+
+        if (backgroundType != Background.TOP_LEFT && this.background && this.background.width > 0 ) {
             this.backgroundPosition = new Point((this.width - this.background.width) / 2, (this.height - this.background.height) /2);
         } else {
             this.backgroundPosition = null; // Background set at origin
