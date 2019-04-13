@@ -13,13 +13,34 @@ import { Sprite } from './sprite';
 import { ResourcesLoader, LoaderScreen, DefaultLoaderScreen } from './loader';
 
 
+export enum MouseEventType {
+    /** Only provide position on click event */
+    BASIC,
+    /** Provide list of clicked sprites */
+    SPRITES,
+    /** Call method `onClick` (interface `Clickable`) on clicked sprites. `Screen` needn't implement `ClickListener` */
+    DELEGATE,
+    /** Call method `onClick` (interface `Clickable`) on clicked sprites ONLY IF `Screen` implements `ClickListener` */
+    DELEGATE_STRICT
+}
 
 
-export enum Background {
+export enum BackgroundType {
+    /** Background image is aligned on its top-left corner */
     TOP_LEFT,
+    /** Background image is centered on screen, limited by `Engine` dimensions */
     CENTERED,
+    /** Background image is centered on screen and fills screen (overflows `Engine` dimensions) */
     OVERFLOW
 };    
+
+
+/**
+ * An interface to declare interest for click events
+ */
+export interface Clickable {
+    onClick(engine: Engine, screen: GameScreen, point: Point): void;
+}
 
 
 
@@ -59,7 +80,7 @@ export class Engine {
     /** Alternative background color if no image background is set */
     private backgroundColor: string;
     /** How background image should be displayed */
-    private backgroundType: number;
+    private backgroundType: BackgroundType;
     /** Background position */
     private backgroundPosition: Point;
 
@@ -81,7 +102,7 @@ export class Engine {
     /** Mouse control enabled */
     private mouseEnabled: boolean;
     /** Mouse control enabled with sprites */
-    private clickedSpritesEnabled: boolean;
+    private mouseEventType: MouseEventType;
     /** Zoom (scroll / touch) */
     private zoomEnabled: boolean;
 
@@ -225,7 +246,7 @@ export class Engine {
         });
 
         // Manage background overflow
-        if (this.background && this.backgroundType == Background.OVERFLOW) {
+        if (this.background && this.backgroundType == BackgroundType.OVERFLOW) {
             let backWidth: number = this.background.width * this.scale;
             let backHeight: number = this.background.height * this.scale;
             this.ctx.drawImage(this.background, 
@@ -476,11 +497,12 @@ export class Engine {
 
         if (this.mouseEnabled && this.mouseEvent) {
             // Check if current screen supports mouse events
-            if (uncasted.onClick !== undefined) {
+            if (this.mouseEventType == MouseEventType.DELEGATE || uncasted.onClick !== undefined) {
                 let mouseScreen: ClickListener = <ClickListener>uncasted;
                 let clickedSprites: Array<Sprite<any>> = null;
 
-                if (this.clickedSpritesEnabled) {
+                // List clicked sprites
+                if (this.mouseEventType != MouseEventType.BASIC) {
                     clickedSprites = new Array<Sprite<any>>();
                     this.spriteList.forEach((sprite: Sprite<any>): void => {
                         if (sprite.contains(this.mouseEvent)) {
@@ -489,7 +511,19 @@ export class Engine {
                     });
                 }
 
-                mouseScreen.onClick(this, this.mouseEvent.clone(), clickedSprites);
+                // Check for clickable sprites
+                if (this.mouseEventType == MouseEventType.DELEGATE || this.mouseEventType == MouseEventType.DELEGATE_STRICT) {
+                    clickedSprites.forEach((spr: Sprite<any>): void => {
+                        if ((<any>spr).onClick) {
+                            (<Clickable>(<any>spr)).onClick(this, this.screen, this.mouseEvent.clone());
+                        }
+                    });
+                }
+
+                // Call `onClick` method of screen
+                if (uncasted.onClick !== undefined) {
+                    mouseScreen.onClick(this, this.mouseEvent.clone(), clickedSprites);
+                }
             }
 
             this.mouseEvent = null;
@@ -533,9 +567,9 @@ export class Engine {
 
     /**
      * Enables mouse and touch click events. Current Screen must implement ClickListener interface
-     * @param withSprites If the event should return clicked sprites
+     * @param eventType How mouse events should be managed
      */
-    public enableMouseControl = (withSprites: boolean = false): void => {
+    public enableMouseControl = (eventType: MouseEventType | boolean = MouseEventType.BASIC): void => {
         if (!this.mouseEnabled) {
             window.addEventListener<'mousedown'>('mousedown', this.onDown);
             window.addEventListener<'touchstart'>('touchstart', this.onDown, { passive: false });
@@ -543,7 +577,13 @@ export class Engine {
             this.mouseEnabled = true;
         }
 
-        this.clickedSpritesEnabled = withSprites;
+        if (eventType == null) {
+            this.mouseEventType = MouseEventType.BASIC;
+        } else if (typeof eventType === 'boolean') {
+            this.mouseEventType = eventType ? MouseEventType.SPRITES : MouseEventType.BASIC;
+        } else {
+            this.mouseEventType = eventType;
+        }
     }
 
     /**
@@ -562,7 +602,7 @@ export class Engine {
      * Enables mouse and touch drag events. Current Screen must implement DragListener interface.
      */
     public enableMouseDrag = (): void => {
-        this.enableMouseControl(this.clickedSpritesEnabled); // Mandatory
+        this.enableMouseControl(this.mouseEventType); // Mandatory
         this.mouseMoveEnabled = true;
     }
 
@@ -819,7 +859,7 @@ export class Engine {
      * @param bgImage The new background image. May be either an image, its relative or absolute url or a canvas
      * @param backgroundType How background should be displayed
      */
-    public setBackground = (bgImage: HTMLImageElement | HTMLCanvasElement | string, backgroundType: number = Background.TOP_LEFT): void => {
+    public setBackground = (bgImage: HTMLImageElement | HTMLCanvasElement | string, backgroundType: number = BackgroundType.TOP_LEFT): void => {
 
         if (bgImage == null) {
             // Removes background
@@ -834,7 +874,7 @@ export class Engine {
 
         this.backgroundType = backgroundType;
 
-        if (backgroundType != Background.TOP_LEFT && this.background && this.background.width > 0 ) {
+        if (backgroundType != BackgroundType.TOP_LEFT && this.background && this.background.width > 0 ) {
             this.backgroundPosition = new Point((this.width - this.background.width) / 2, (this.height - this.background.height) /2);
         } else {
             this.backgroundPosition = null; // Background set at origin
