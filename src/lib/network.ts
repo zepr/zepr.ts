@@ -3,10 +3,6 @@
  */
 
 /**
- * 
- */
-
-/**
  * Simple ajax functions
  */
 export class Net {

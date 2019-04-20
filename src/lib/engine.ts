@@ -1,47 +1,8 @@
-/**
- * Defines the engine used to render scenes (aka [[GameScreen]]s).
- * A project that use the zepr.ts framework must define exactly one instance of [[Engine]]
- */
-
-/**
- * 
- */
-
-import { Point, Vector, Rectangle } from './geometry'
-import { GameScreen, ClickListener, ZoomListener, DragListener } from './screen';
+import { Point, Vector } from './geometry';
+import { ClickListener, ZoomListener, DragListener, MouseEventType, Clickable } from './mouse';
 import { Sprite } from './sprite';
-import { ResourcesLoader, LoaderScreen, DefaultLoaderScreen } from './loader';
-
-
-export enum MouseEventType {
-    /** Only provide position on click event */
-    BASIC,
-    /** Provide list of clicked sprites */
-    SPRITES,
-    /** Call method `onClick` (interface `Clickable`) on clicked sprites. `Screen` needn't implement `ClickListener` */
-    DELEGATE,
-    /** Call method `onClick` (interface `Clickable`) on clicked sprites ONLY IF `Screen` implements `ClickListener` */
-    DELEGATE_STRICT
-}
-
-
-export enum BackgroundType {
-    /** Background image is aligned on its top-left corner */
-    TOP_LEFT,
-    /** Background image is centered on screen, limited by `Engine` dimensions */
-    CENTERED,
-    /** Background image is centered on screen and fills screen (overflows `Engine` dimensions) */
-    OVERFLOW
-};    
-
-
-/**
- * An interface to declare interest for click events
- */
-export interface Clickable {
-    onClick(engine: Engine, screen: GameScreen, point: Point): void;
-}
-
+import { Core } from './core';
+import { LoaderScreen } from './loader';
 
 
 /**
@@ -55,49 +16,9 @@ class State {
 }
 
 /**
- * Defines the engine used to render scenes (aka Screens).
+ * Defines the engine used to render scenes (aka [[GameScreen]]s) with support for mouse and touch events.
  */
-export class Engine {
-
-    /** Default background color used when nothing is specified for a Screen */
-    public static readonly DEFAULT_BACKGROUND_COLOR = '#000000';
-    /** Zoom ratio used for mouse scroll wheel */
-    public static readonly ZOOM_RATIO: number = 1.1;
-
-    /** Main canvas */
-    private canvas: HTMLCanvasElement;
-    /** Main Canvas rendering context */
-    private ctx: CanvasRenderingContext2D;
-    /** Canvas used for off-screen rendering (double buffering) */
-    private offCanvas: HTMLCanvasElement;
-    /** off-screen Canvas rendering context */
-    private offCtx: CanvasRenderingContext2D;
-    /* Canvas integration : coords */
-    private coords: Rectangle;
-
-    /** Current background */
-    private background: HTMLImageElement | HTMLCanvasElement;
-    /** Alternative background color if no image background is set */
-    private backgroundColor: string;
-    /** How background image should be displayed */
-    private backgroundType: BackgroundType;
-    /** Background position */
-    private backgroundPosition: Point;
-
-    /** Scene scale in user view */
-    private scale: number;
-
-    /** Object cache */
-    private cache: Map<string, any>;
-
-    /** Current screen */
-    private screen: GameScreen;
-    /** Next screen */
-    private nextScreen: GameScreen;
-    /** Sprites defined in current screen */
-    private spriteList: Array<Sprite<any>>;
-    /** Check for modification of Sprites list in current frame */
-    private modifiedSpriteList: boolean;
+export class Engine extends Core {
 
     /** Mouse control enabled */
     private mouseEnabled: boolean;
@@ -107,7 +28,7 @@ export class Engine {
     private zoomEnabled: boolean;
 
     /** Last mouse event */
-    private mouseEvent: Point;
+    //private mouseEvent: Point;
     /** Mouse movement control enabled */
     private mouseMoveEnabled: boolean;
     /** Current mouse movement */
@@ -129,405 +50,36 @@ export class Engine {
     /** Is touch currently used to zoom  */
     private isTouchZoom: boolean;
 
-    /** Resources loader */
-    private resourcesLoader: ResourcesLoader;
-    /** Loader screen */
-    private loaderScreen: LoaderScreen;
-    /** If loader is initialised */
-    private initLoader: boolean;
-
-    /** Screen overflow */
-    private overflow: boolean;
-    /** Screen overflow center */
-    private overflowCenter: Point;
-    /** If overflow is horizontal */
-    private horizontalOverflow: boolean;
-
-    /** Last render time */
-    private lastTime: number;
+    /** Functions used to manage events */
+    private eventMap: Map<string, (event: MouseEvent | TouchEvent) => void>;
 
     /**
-     * Defines an Engine. The scene is always maximized and centered on screen with preservation of its aspect ratio (Adds borders when needed)
-     * @param _width Scene width
-     * @param _height Scene height
-     * @param _loader Optional custom screen loader
+     * Defines a Engine with mouse/touch management. The scene is always maximized and centered on screen with preservation of its aspect ratio (Adds borders when needed)
+     * @param width Scene width
+     * @param height Scene height
+     * @param loader Optional custom screen loader
      */
-    public constructor(private _width: number, private _height: number, _loader?: LoaderScreen) {
+    public constructor(width: number, height: number, loader?: LoaderScreen) {
+        super(width, height, loader);
 
-        // Always create a new canvas
-        this.canvas = document.createElement<'canvas'>('canvas');
-        document.body.appendChild(this.canvas);
-        // Force style of main canvas
-        this.canvas.style.position = 'absolute';
-        this.canvas.style.top = '0px';
-        this.canvas.style.left = '0px';
-
-        // Init resources
-        this.ctx = this.canvas.getContext('2d');
-        this.coords = new Rectangle();
-
-        this.offCanvas = document.createElement<'canvas'>('canvas');
-        this.offCanvas.width = _width;
-        this.offCanvas.height = _height;
-        this.offCtx = this.offCanvas.getContext('2d');
-
-        // Cache
-        this.cache = new Map<string, any>();
-
-        // Resources preloading
-        this.resourcesLoader = new ResourcesLoader(this.cache);
-        if (_loader == null) {
-            this.loaderScreen = new DefaultLoaderScreen();
-        } else {
-            this.loaderScreen = _loader;
-        }
-
-        // Manage resize
-        window.addEventListener<'resize'>('resize', this.resize);
-        window.addEventListener<'orientationchange'>('orientationchange', this.resize);
-
-        // Set default values
-        this.reset();
-
-        // Initialise main loop
-        window.requestAnimationFrame(this.run);
-    }
-
-    /**
-     * Adapts view to a new screen size
-     * @param event Resize event
-     */
-    protected resize = (event?: UIEvent): void => {
-        const ratio: number = this._width / this._height;
-        
-		this.canvas.width = window.innerWidth;
-		this.canvas.height = window.innerHeight;
-
-        const newRatio: number = this.canvas.width / this.canvas.height;
-
-        if ((newRatio > ratio) != this.overflow) {
-            let realWidth: number = this.canvas.height * ratio;
-            this.coords.moveTo((this.canvas.width - realWidth) / 2, 0);
-            this.scale = this.canvas.height / this._height;
-            this.horizontalOverflow = true;
-        } else {
-            let realHeight: number = this.canvas.width / ratio;
-            this.coords.moveTo(0, (this.canvas.height - realHeight) / 2);
-            this.scale = this.canvas.width / this._width;
-            this.horizontalOverflow = false;
-        }
-
-        this.coords.resize(this._width * this.scale, this._height * this.scale);
-
-        // Set center position when set in overflow
-        if (this.overflow && this.overflowCenter != null) {
-            this.setCenter(this.overflowCenter);
-        }
-    }
-
-    /**
-     * Refreshes scene. Renders background and sprites on offest canvas
-     */
-    protected repaint = (): void => {
-        if (this.background) {
-            if (this.backgroundPosition) {
-                this.offCtx.drawImage(this.background, this.backgroundPosition.x, this.backgroundPosition.y);
-            } else {
-                this.offCtx.drawImage(this.background, 0, 0);
-            }
-        } else {
-            this.offCtx.fillStyle = this.backgroundColor;
-            this.offCtx.fillRect(0, 0, this._width, this._height);
-        }
-
-        // Draw sprites
-        this.spriteList.forEach((sprite: Sprite<any>): void => {
-            sprite.render(this.offCtx);
-        });
-
-        // Manage background overflow
-        if (this.background && this.backgroundType == BackgroundType.OVERFLOW) {
-            let backWidth: number = this.background.width * this.scale;
-            let backHeight: number = this.background.height * this.scale;
-            this.ctx.drawImage(this.background, 
-                (window.innerWidth - backWidth) / 2, (window.innerHeight - backHeight) / 2, 
-                backWidth, backHeight);
-        }
-
-        // Paint off-screen canvas on visible canvas
-        this.ctx.drawImage(this.offCanvas, this.coords.x, this.coords.y, this.coords.width, this.coords.height);
-    }
-
-    /**
-     * Main loop
-     * - Redraws main frame
-     * - Evaluates captured events 
-     * - Executes current [[GameScreen]] run method
-     * - Renders sprites for next frame
-     * @param time Delai d'appel
-     */
-    protected run = (time: number): void => {
-        this.repaint();
-
-        // Check for screen switch
-        if (this.nextScreen) {
-            if (this.screen) {
-                this.reset();
-                this.screen = null;
-            }
-
-            // Manage resources preloader
-            if (this.resourcesLoader.complete()) {
-                // Switch to next screen
-                this.screen = this.nextScreen;
-                this.nextScreen = null;
-
-                this.screen.init(this);
-            } else {
-                // Init loader
-                if (!this.initLoader) {
-                    this.loaderScreen.init(this);
-                    this.initLoader = true;
-                }
-
-                // Update loader
-                this.loaderScreen.run(this, this.resourcesLoader.update());
-                if (this.resourcesLoader.complete()) {
-                    this.reset();
-                }
-            }
-        }
-
-        if (this.screen) {
-            this.manageMouseEvents();
-            this.screen.run(this, this.lastTime ? time - this.lastTime : time);
-            this.lastTime = time;
-
-            // Sort sprites according to their index
-            if (this.modifiedSpriteList) { // Only if something changed
-                this.spriteList.sort((first: Sprite<any>, second: Sprite<any>): number => {
-                    return first.getIndex() - second.getIndex();
-                });
-
-                this.modifiedSpriteList = false;
-            }            
-        }
-
-        window.requestAnimationFrame(this.run);
+        // Init function list
+        this.eventMap = new Map<string, (event: MouseEvent | TouchEvent) => void>();
+        this.eventMap.set('down', this.onDown.bind(this));
+        this.eventMap.set('up', this.onUp.bind(this));
+        this.eventMap.set('move', this.onMove.bind(this));
+        this.eventMap.set('zoom', this.onZoom.bind(this));
+        this.eventMap.set('endZoom', this.onEndZoom.bind(this));
     }
 
 
-    /** Screen width */
-    get width(): number {
-        return this._width;
-    }
+    protected run(time: number): void {
+        super.run(time);
 
-    /** Screen height */
-    get height(): number {
-        return this._height;
-    }
-    
-    /** 
-     * Resets screen settings. Internally used for screen switch
-     */
-    protected reset = (): void => {
+        // No mouse event with loader screen
+        if (this.screen == null) return;
 
-        // Background
-        this.background = null;
-        this.backgroundPosition = null;
-        this.backgroundColor = Engine.DEFAULT_BACKGROUND_COLOR;
-
-        // Sprites
-        if (this.spriteList) {
-            this.spriteList.length = 0;
-        } else {
-            this.spriteList = new Array<Sprite<any>>();
-        }
-        this.modifiedSpriteList = true;
-    
-        // Mouse
-        this.mouseEvent = null;
-        this.mouseMovement = new Vector(0, 0);
-        
-        // Zoom
-        this.zoomState = new State();
-        this.zoomState.current = 1;
-        this.touchZoomState = new State();
-        this.touchZoomState.current = 0;
-        this.isTouchZoom = false;      
-        
-        // Loader
-        this.initLoader = false;
-
-        // Overflow
-        this.overflowCenter = null;
-        this.setOverflow(false);
-    }
-
-
-    /**
-     * Changes overflow state
-     * @param _overflow New overflow state
-     */
-    public setOverflow = (_overflow: boolean): void => {
-        if (this.overflow != _overflow) {
-            this.overflow = _overflow;
-            this.resize();
-        }
-    }
-
-    /**
-     * Centers scene. This setting has no effect if there's no overflow
-     * @param position New centered position. Use null to set center in the middle of the scene
-     */
-    public setCenter = (position: Point): void => {
-        this.overflowCenter = position;
-
-        if (!this.overflow) return;
-
-        let scale: number;
-        if (this.horizontalOverflow) {
-            scale = this.canvas.height / this._height;   
-            this.coords.moveTo(Math.max(this.canvas.width - this.coords.width, Math.min(0, (this.canvas.width / 2) - this.overflowCenter.x * scale)), 0);
-        } else {
-            scale = this.canvas.width / this._width;
-            this.coords.moveTo(0, Math.max(this.canvas.height - this.coords.height, Math.min(0, (this.canvas.height / 2) - this.overflowCenter.y * scale)));
-        }
-    }
-
-
-    /**
-     * Loads object from cache
-     * @param key id of the object to load
-     */
-    public getData = (key: string): any => {
-        return this.cache.get('custom.' + key);
-    }
-
-    /**
-     * Stores object to cache
-     * @param key id of the object to store
-     * @param value object to store
-     */
-    public setData = (key: string, value: any): void => {
-        this.cache.set('custom.' + key, value);
-    }
-
-
-    /**
-     * Loads an image, adds it to the cache (If not already done)
-     * @param url Absolute or relative path to the image
-     * 
-     * @returns An image or null if not found
-     */
-    protected addImage = (url: string): HTMLImageElement => {
-		let img: HTMLImageElement = <HTMLImageElement>this.cache.get(url);
-		if (!img) {
-            img = document.createElement<'img'>('img');
-			img.src = url;
-			
-			this.cache.set(url, img);
-		}
-        
-        return img;
-    }
-
-    /**
-     * Loads an image. Equivalent to [[addImage]]
-     * @param url Absolute or relative path to the image
-     * 
-     * @returns An image or null if not found
-     */
-    public getImage = (url: string): HTMLImageElement => {
-        return this.addImage(url);
-    }
-
-
-    /**
-     * Caches a new [[GameScreen]] instance
-     * @param name Key associated to the screen
-     * @param newScreen New screen to reference
-     * 
-     * @returns current engine (to chain screen definitions)
-     */
-    public addScreen = (name: string, newScreen: GameScreen): Engine => {
-        this.resourcesLoader.addResources(newScreen);
-        this.cache.set('screen.' + name, newScreen);
-        return this;
-    }
-
-
-    /**
-     * Changes displayed [[GameScreen]]. Use key when possible. See also [[addScreen]].
-     * @param newScreen Key of referenced screen or new instance of screen
-     */
-    public start = (newScreen: string | GameScreen): void => {
-        if (typeof newScreen === 'string') {
-            this.nextScreen = <GameScreen>this.cache.get('screen.' + newScreen);
-        } else {
-            this.nextScreen = newScreen;
-        }
-    }
-
-    /**
-     * Forces update of sprites hierarchy. Should be used when index of sprites is updated.
-     */
-    public forceHierarchyUpdate = (): void => {
-        this.modifiedSpriteList = true;
-    }
-
-
-    /**
-     * Defines new zoom value. Ignored without [[enableZoomControl]]
-     * @param newZoom New zoom value, within the minZoom - maxZoom limits
-     */
-    public setZoom = (newZoom: number): void => {
-        this.zoomState.next = newZoom;
-    }
-
-
-    /* MOUSE CONTROL */
-    /* START */
-
-    /**
-     * Manages everything related to mouse and touch events
-     */
-    private manageMouseEvents = (): void => {
+        // Manage mouse zoom/drag
         let uncasted = <any>this.screen;
-
-        if (this.mouseEnabled && this.mouseEvent) {
-            // Check if current screen supports mouse events
-            if (this.mouseEventType == MouseEventType.DELEGATE || uncasted.onClick !== undefined) {
-                let mouseScreen: ClickListener = <ClickListener>uncasted;
-                let clickedSprites: Array<Sprite<any>> = null;
-
-                // List clicked sprites
-                if (this.mouseEventType != MouseEventType.BASIC) {
-                    clickedSprites = new Array<Sprite<any>>();
-                    this.spriteList.forEach((sprite: Sprite<any>): void => {
-                        if (sprite.contains(this.mouseEvent)) {
-                            clickedSprites.push(sprite);
-                        }
-                    });
-                }
-
-                // Check for clickable sprites
-                if (this.mouseEventType == MouseEventType.DELEGATE || this.mouseEventType == MouseEventType.DELEGATE_STRICT) {
-                    clickedSprites.forEach((spr: Sprite<any>): void => {
-                        if ((<any>spr).onClick) {
-                            (<Clickable>(<any>spr)).onClick(this, this.screen, this.mouseEvent.clone());
-                        }
-                    });
-                }
-
-                // Call `onClick` method of screen
-                if (uncasted.onClick !== undefined) {
-                    mouseScreen.onClick(this, this.mouseEvent.clone(), clickedSprites);
-                }
-            }
-
-            this.mouseEvent = null;
-        }
 
         if (this.zoomEnabled && this.touchZoomState.next != 0 && this.touchZoomState.current != this.touchZoomState.next) {
             if (this.touchZoomState.current != 0) {
@@ -565,14 +117,40 @@ export class Engine {
         }    
     }
 
+
+    protected reset(): void {
+        // Mouse
+        this.mouseMovement = new Vector(0, 0);
+        
+        // Zoom
+        this.zoomState = new State();
+        this.zoomState.current = 1;
+        this.touchZoomState = new State();
+        this.touchZoomState.current = 0;
+        this.isTouchZoom = false;        
+
+        super.reset();
+    }
+
+
+    /**
+     * Defines new zoom value. Ignored without [[enableZoomControl]]
+     * @param newZoom New zoom value, within the minZoom - maxZoom limits
+     */
+    public setZoom(newZoom: number): void {
+        this.zoomState.next = newZoom;
+    }
+
+
     /**
      * Enables mouse and touch click events. Current Screen must implement ClickListener interface
      * @param eventType How mouse events should be managed
      */
-    public enableMouseControl = (eventType: MouseEventType | boolean = MouseEventType.BASIC): void => {
+    public enableMouseControl(eventType: MouseEventType | boolean = MouseEventType.BASIC): void {
+
         if (!this.mouseEnabled) {
-            window.addEventListener<'mousedown'>('mousedown', this.onDown);
-            window.addEventListener<'touchstart'>('touchstart', this.onDown, { passive: false });
+            window.addEventListener<'mousedown'>('mousedown', this.eventMap.get('down'), { passive: false });
+            window.addEventListener<'touchstart'>('touchstart', this.eventMap.get('down'), { passive: false });
 
             this.mouseEnabled = true;
         }
@@ -589,10 +167,10 @@ export class Engine {
     /**
      * Disables mouse and touch click events. 
      */
-    public disableMouseControl = (): void => {
+    public disableMouseControl(): void {
         if (this.mouseEnabled) {
-            window.removeEventListener<'mousedown'>('mousedown', this.onDown);
-            window.removeEventListener<'touchstart'>('touchstart', this.onDown);
+            window.removeEventListener<'mousedown'>('mousedown', this.eventMap.get('down'));
+            window.removeEventListener<'touchstart'>('touchstart', this.eventMap.get('down'));
 
             this.mouseEnabled = false;
         }
@@ -601,7 +179,7 @@ export class Engine {
     /**
      * Enables mouse and touch drag events. Current Screen must implement DragListener interface.
      */
-    public enableMouseDrag = (): void => {
+    public enableMouseDrag(): void {
         this.enableMouseControl(this.mouseEventType); // Mandatory
         this.mouseMoveEnabled = true;
     }
@@ -609,30 +187,30 @@ export class Engine {
     /**
      * Disables mouse and touch drag events.
      */
-    public disableMouseDrag = (): void => {
+    public disableMouseDrag(): void {
         this.mouseMoveEnabled = false; // TODO : Voir effet de bord si desactivation en cours de cycle
     }
 
     /**
      * Enables mouse wheel and touch pinch events. Current Screen must implement ZoomListener interface.
      */
-    public enableZoomControl = (minZoom: number = 0.1, maxZoom: number = 10): void => {
+    public enableZoomControl(minZoom: number = 0.1, maxZoom: number = 10): void {
 
         this.minZoom = minZoom;
         this.maxZoom = maxZoom;
-
+        
         if (!this.zoomEnabled) {
             this.touchZoomState.next = this.touchZoomState.current;
             this.zoomState.next = this.zoomState.current;
 
             if (!this.mouseEnabled) {
                 // this.mouseEnabled not updated
-                window.addEventListener<'touchstart'>('touchstart', this.onDown, { passive: false });
+                window.addEventListener<'touchstart'>('touchstart', this.eventMap.get('down'), { passive: false });
             }
 
-            window.addEventListener<'wheel'>('wheel', this.onZoom);
-            window.addEventListener<'touchmove'>('touchmove', this.onZoom, { passive: false });
-            window.addEventListener<'touchend'>('touchend', this.onEndZoom, { passive: false });
+            window.addEventListener<'wheel'>('wheel', this.eventMap.get('zoom'), { passive: false });
+            window.addEventListener<'touchmove'>('touchmove', this.eventMap.get('zoom'), { passive: false });
+            window.addEventListener<'touchend'>('touchend', this.eventMap.get('endZoom'), { passive: false });
 
             this.zoomEnabled = true;
         }
@@ -641,15 +219,15 @@ export class Engine {
     /**
      * Disables mouse wheel and touch pinch events.
      */
-    public disableZoomControl = (): void => {
+    public disableZoomControl(): void {
         if (this.zoomEnabled) {
             if (!this.mouseEnabled) {
                 // this.mouseEnabled not updated
-                window.removeEventListener<'touchstart'>('touchstart', this.onDown);
+                window.removeEventListener<'touchstart'>('touchstart', this.eventMap.get('down'));
             }
-            window.removeEventListener<'wheel'>('wheel', this.onZoom);
-            window.removeEventListener<'touchmove'>('touchmove', this.onZoom);
-            window.removeEventListener<'touchend'>('touchend', this.onEndZoom);
+            window.removeEventListener<'wheel'>('wheel', this.eventMap.get('zoom'));
+            window.removeEventListener<'touchmove'>('touchmove', this.eventMap.get('zoom'));
+            window.removeEventListener<'touchend'>('touchend', this.eventMap.get('endZoom'));
 
             this.zoomEnabled = false;
         }
@@ -659,7 +237,7 @@ export class Engine {
      * Listens zoom events
      * @param event Source event
      */
-    protected onZoom = (event: WheelEvent | TouchEvent): void => {
+    protected onZoom(event: WheelEvent | TouchEvent): void {
 
         event.preventDefault();
 
@@ -685,7 +263,7 @@ export class Engine {
      * Reset state when zoom touch ends
      * @param event Source event
      */
-    protected onEndZoom = (event: TouchEvent): void => {
+    protected onEndZoom(event: TouchEvent): void {
         this.touchZoomState.current = 0;
         this.touchZoomState.next = 0;
         if (event.touches.length == 0) {
@@ -699,7 +277,7 @@ export class Engine {
      * 
      * @returns The screen coordinates of the event
      */
-    private getEventPosition = (event: MouseEvent | TouchEvent): Point => {
+    private getEventPosition(event: MouseEvent | TouchEvent): Point {
         let x: number = -1, y: number = -1;
 
         if (event instanceof MouseEvent) {
@@ -731,8 +309,8 @@ export class Engine {
      * Listens mouse down events to manage both click and drag events
      * @param event Source event
      */
-    protected onDown = (event: MouseEvent | TouchEvent): void => {
-    
+    protected onDown(event: MouseEvent | TouchEvent): void {
+
         event.preventDefault();
 
         let position: Point = this.getEventPosition(event);
@@ -750,18 +328,52 @@ export class Engine {
         }
 
         if (position != null) {
-            this.mouseEvent = position;
-
             if (this.mouseMoveEnabled) {
                 this.mouseMovement.set(0, 0);
-                this.mousePrevious = this.mouseEvent.clone();
+                this.mousePrevious = position.clone();
     
-                window.addEventListener<'mousemove'>('mousemove', this.onMove);
-                window.addEventListener<'touchmove'>('touchmove', this.onMove, { passive: false });
+                window.addEventListener<'mousemove'>('mousemove', this.eventMap.get('move'), { passive: false });
+                window.addEventListener<'touchmove'>('touchmove', this.eventMap.get('move'), { passive: false });
     
-                window.addEventListener<'mouseup'>('mouseup', this.onUp);
-                window.addEventListener<'touchend'>('touchend', this.onUp, { passive: false });
-            }    
+                window.addEventListener<'mouseup'>('mouseup', this.eventMap.get('up'), { passive: false });
+                window.addEventListener<'touchend'>('touchend', this.eventMap.get('up'), { passive: false });
+            }
+
+            let uncasted: any = <any>this.screen;
+            let hasOnClickMethod: boolean = uncasted.onClick !== undefined;
+
+            // Check if current screen supports mouse events
+            if (this.mouseEventType == MouseEventType.DELEGATE || hasOnClickMethod) {
+                let mouseScreen: ClickListener = <ClickListener>uncasted;
+
+                // List clicked sprites
+                let clickedSprites: Array<Sprite<any>> = null;
+                if (this.mouseEventType != MouseEventType.BASIC) {
+                    clickedSprites = new Array<Sprite<any>>();
+                    this.spriteList.forEach((sprite: Sprite<any>): void => {
+                        if (sprite.contains(position)) {
+                            clickedSprites.push(sprite);
+                        }
+                    });
+                }
+
+                // Call `onClick` method of screen
+                let callSprites: boolean = true;
+                if (hasOnClickMethod) {
+                    callSprites = mouseScreen.onClick(this, position.clone(), clickedSprites);
+                }
+
+                // Check for clickable sprites
+                if (callSprites
+                    && (this.mouseEventType == MouseEventType.DELEGATE || this.mouseEventType == MouseEventType.DELEGATE_STRICT)) {
+                    clickedSprites.forEach((spr: Sprite<any>): void => {
+                        if ((<any>spr).onClick) {
+                            (<Clickable>(<any>spr)).onClick(this, this.screen, position.clone());
+                        }
+                    });
+                }
+
+            }
         }
     }
 
@@ -769,7 +381,7 @@ export class Engine {
      * Listens move events to manage drag events
      * @param event Source event
      */
-    protected onMove = (event: MouseEvent | TouchEvent): void => {
+    protected onMove(event: MouseEvent | TouchEvent): void {
         event.preventDefault();
 
         if (this.mouseMoveEnabled) {
@@ -785,7 +397,8 @@ export class Engine {
      * Listens mouse up events to manage both click and drag events
      * @param event Source event
      */
-    protected onUp = (event: MouseEvent | TouchEvent): boolean => {
+    protected onUp(event: MouseEvent | TouchEvent): boolean {
+
         event.preventDefault();
 
         if (this.mouseMoveEnabled && !this.isTouchZoom) {
@@ -798,100 +411,15 @@ export class Engine {
             this.mouseMovement.set(0, 0);    
         }
 
-        window.removeEventListener<'mousemove'>('mousemove', this.onMove);
-        window.removeEventListener<'touchmove'>('touchmove', this.onMove);
-        window.removeEventListener<'mouseup'>('mouseup', this.onUp);
-        window.removeEventListener<'touchend'>('touchend', this.onUp);
+        window.removeEventListener<'mousemove'>('mousemove', this.eventMap.get('move'));
+        window.removeEventListener<'touchmove'>('touchmove', this.eventMap.get('move'));
+        window.removeEventListener<'mouseup'>('mouseup', this.eventMap.get('up'));
+        window.removeEventListener<'touchend'>('touchend', this.eventMap.get('up'));
 
         this.endDrag = true;
 
         return false;
     }
-
-
-    /* END */
-    /* MOUSE CONTROL */
-
-
-    /* CONTEXT AREA */
-    /* START */
-
-    /**
-     * Adds sprite to screen. A sprite is inserted only once in a Screen
-     * @param sprite Sprite to add
-     * 
-     * @returns true if the Sprite is added (false if already present)
-     */
-    public addSprite = (sprite: Sprite<any>): boolean => {
-        let index: number = this.spriteList.indexOf(sprite);
-
-        if (index == -1) {
-            this.spriteList.push(sprite);
-            this.modifiedSpriteList = true;
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Removes instance of sprite
-     * @param sprite Sprite to remove
-     * 
-     * @returns true if the sprite is really removed (false if not present)
-     */
-    public removeSprite = (sprite: Sprite<any>): boolean => {
-        let index: number = this.spriteList.indexOf(sprite);
-
-        if (index >= 0) {
-            this.spriteList.splice(index, 1);
-            this.modifiedSpriteList = true;
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Defines current background image. The image is not distorted to fit the screen. 
-     * @param bgImage The new background image. May be either an image, its relative or absolute url or a canvas
-     * @param backgroundType How background should be displayed
-     */
-    public setBackground = (bgImage: HTMLImageElement | HTMLCanvasElement | string, backgroundType: number = BackgroundType.TOP_LEFT): void => {
-
-        if (bgImage == null) {
-            // Removes background
-            this.background = null;
-        } else if (bgImage instanceof HTMLImageElement) {
-            this.background = <HTMLImageElement>bgImage;
-        } else if (bgImage instanceof HTMLCanvasElement) {
-            this.background = <HTMLCanvasElement>bgImage;
-        } else { // string
-            this.background = this.getImage(bgImage);
-        }
-
-        this.backgroundType = backgroundType;
-
-        if (backgroundType != BackgroundType.TOP_LEFT && this.background && this.background.width > 0 ) {
-            this.backgroundPosition = new Point((this.width - this.background.width) / 2, (this.height - this.background.height) /2);
-        } else {
-            this.backgroundPosition = null; // Background set at origin
-        }
-    }
-
-    /**
-     * Defines current background color. Has no effect if a background image is already defined for the current screen. See also [[setBackground]].
-     * @param color The new background color
-     */
-    public setBackgroundColor = (color: string): void => {
-        this.backgroundColor = color;
-    }
-
-    /* END */
-    /* CONTEXT AREA */
-
      
 }
 

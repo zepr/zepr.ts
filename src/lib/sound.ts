@@ -3,11 +3,6 @@
  */
 
 /**
- * 
- */
-
-
-/**
  * Each instance can manage a sound or music for the duration of the application
  */
 export class Sound {

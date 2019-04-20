@@ -2,9 +2,6 @@
  * Exposes sprite-related classes
  */
 
-/**
- * 
- */
 import { Point, Rectangle, Vector, Shape, Circle } from './geometry';
 import { Text, TextAlign, Font } from './text'
 
@@ -12,6 +9,7 @@ import { Text, TextAlign, Font } from './text'
  * Set of positions, clockwise from noon
  */
 export enum Direction { Up, UpRight, Right, DownRight, Down, DownLeft, Left, UpLeft };
+
 
 /**
  * Mandatory interface for sprites

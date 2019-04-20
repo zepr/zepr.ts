@@ -8,14 +8,14 @@
  * to use the library.
  */
 
-/**
- * 
- */
-export { MouseEventType, Clickable, BackgroundType, Engine } from './lib/engine'
+export { BackgroundType, Core } from './lib/core'
+export { Engine } from './lib/engine'
+export { MouseEventType, Clickable, ClickListener, DragListener, ZoomListener } from './lib/mouse'
 export { ResourcesLoader, LoaderStats, LoaderScreen, DefaultLoaderScreen, ProgressBar } from './lib/loader'
-export { GameScreen, ClickListener, DragListener, ZoomListener } from './lib/screen'
+export { GameScreen } from './lib/screen'
 export { Direction, Sprite, RawSprite, ImageSprite, TiledSprite, TextSprite } from './lib/sprite'
 export { Point, Vector, Shape, Rectangle, Circle } from './lib/geometry'
 export { TextAlign, Font, Text } from './lib/text'
 export { Sound } from './lib/sound'
 export { Net } from './lib/network'
+export { Fullscreen } from './lib/fullscreen'

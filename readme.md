@@ -1,4 +1,4 @@
-# zepr.ts v0.2.3
+# zepr.ts v0.3.0
 
 A simple HTML5 rendering engine
 
@@ -39,6 +39,17 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 ```
 
 ## Changelog
+
+### 0.3.0 - 2019.04.20
+
+Major Refactoring of mouse events
+- Core engine is now the `Core` class. It manages `Screen` and `Sprite` with no controls
+- `Engine` is a derived class of `Core` that manages mouse/touch controls (Same scope as before)
+- New `Clickable` interface for `Sprite`s. Engine can now delegate click events to `Sprite`s (see `Engine.enableMouseControl()`)
+- Changed the way mouse events are managed : Events are taken into account when they occur (Used to be at next frame). Needed for next new feature
+- Added helper for fullscreen mode. Must be called on user gesture (Should be in `Screen.onClick()` or `Sprite.onClick()`  method)
+- BugFix No more passive events for mouse control
+
 
 ### 0.2.3 - 2019.03.25
 

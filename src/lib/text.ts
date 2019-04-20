@@ -2,9 +2,6 @@
  * Exposes text-related classes
  */
 
-/**
- * 
- */
 import { Point } from "./geometry";
 
 /** Defines possible text alignments */

@@ -2,14 +2,10 @@
  * Resources loader
  */
 
-/**
- * 
- */
-
-import { Engine } from './engine';
+import { Core } from './core';
 import { GameScreen } from './screen';
 import { Sound } from './sound';
-import { Sprite, RawSprite } from './sprite';
+import { RawSprite } from './sprite';
 import { Point, Rectangle } from './geometry';
 import { TextAlign, Font, Text } from './text';
 
@@ -176,16 +172,16 @@ export interface LoaderScreen {
      * Initialises scene. This method is called each time the loader is called. 
      * If all screens are defined before the first call to `Engine.start()`, 
      * this method is only called once.
-     * @param engine A reference to the active engine
+     * @param core A reference to the active engine core
      */
-    init(engine: Engine): void;
+    init(core: Core): void;
 
     /** 
      * Main method. Called on each frame
-     * @param engine A reference to the active engine
+     * @param core A reference to the active engine core
      * @param stats Current loader stats
      */
-    run(engine: Engine, stats: LoaderStats): void;
+    run(core: Core, stats: LoaderStats): void;
 }
 
 
@@ -200,21 +196,21 @@ export class DefaultLoaderScreen implements LoaderScreen {
 
     progressBar: ProgressBar;    
     
-    init(engine: Engine): void {
+    init(core: Core): void {
         let rect: Rectangle = new Rectangle(
             DefaultLoaderScreen.HORIZONTAL_MARGIN,
-            Math.floor(engine.height * .6),
-            engine.width - DefaultLoaderScreen.HORIZONTAL_MARGIN * 2,
+            Math.floor(core.height * .6),
+            core.width - DefaultLoaderScreen.HORIZONTAL_MARGIN * 2,
             DefaultLoaderScreen.PROGRESSBAR_HEIGHT
         );
 
         this.progressBar = new ProgressBar(rect);
 
-        engine.setBackgroundColor('#FFFFFF');
-        engine.addSprite(this.progressBar);
+        core.setBackgroundColor('#FFFFFF');
+        core.addSprite(this.progressBar);
     }    
     
-    run(engine: Engine, stats: LoaderStats): void {
+    run(core: Core, stats: LoaderStats): void {
         this.progressBar.update(stats);
     }
 }
