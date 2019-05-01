@@ -40,6 +40,10 @@ typedoc --out ./dist/docs/ --mode file --name "zepr.ts | An HTML5 rendering engi
 
 ## Changelog
 
+### 0.3.1 - 2019.05.01
+
+- BugFix Security (dependencies)
+
 ### 0.3.0 - 2019.04.20
 
 Major Refactoring of mouse events
